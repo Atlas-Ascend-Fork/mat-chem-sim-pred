@@ -26,7 +26,7 @@ python -m pytest tests -q
 The directory contains the AscendC kernel, ACLNN host API, GE op definition,
 NumPy oracle, dispatch guards, unit tests, and reproducible model evidence.
 
-`ge_opp/run_torchair_probe.sh` builds and registers the custom OPP, then runs a
-real `torch.compile(..., fullgraph=True)` graph through TorchAir. This FP32 GE
-path passed on Ascend910B3 with `2.38e-7` maximum error. Direct ACLNN remains
-the FP32/FP16/BF16 path; the packaged GE definition is currently FP32-only.
+The [GE op definition](op_host/csr_supergat_dot_attention_aggregate_fused_def.cpp)
+is FP32-only. A TorchAir `torch.compile(..., fullgraph=True)` run on Ascend910B3
+recorded `2.38e-7` maximum error, but the probe script is not included in this
+repository. Direct ACLNN remains the FP32/FP16/BF16 path.
