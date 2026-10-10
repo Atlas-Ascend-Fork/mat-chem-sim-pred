@@ -7,7 +7,7 @@ feature dot product and has no learned left/right attention vector.
 
 The FP32 Cora x4 model benchmark is exact to `7.45e-08` max absolute error and
 runs in 3.395 ms versus the strongest correct eager path at 6.001 ms (1.77x).
-See [the consolidated evidence](../new_prediction_top5_evidence/README.md).
+See the [benchmark summary](docs/benchmark.md) for the recorded measurements.
 
 Supported shapes are `[N,H,C]` with `H<=8`, `C<=64`, non-empty int32 CSR, and
 maximum destination degree 512. The ACLNN forward accepts contiguous FP32, FP16,
