@@ -282,13 +282,13 @@ class BayesianOptimizer:
         for i in range(self.n_initial):
             x = torch.rand(self.bounds.shape[0])
             x = x * (self.bounds[:, 1] - self.bounds[:, 0]) + self.bounds[:, 0]
-            y = objective(x.unsqueeze(0))
-            self.update(x, y[0])
+            y = objective(x)
+            self.update(x, y)
 
         for i in range(n_iter):
             x_next = self.suggest()
-            y_next = objective(x_next.unsqueeze(0))
-            self.update(x_next, y_next[0])
+            y_next = objective(x_next)
+            self.update(x_next, y_next)
 
         best_idx = torch.argmax(torch.stack(self.y_observed))
         return self.x_observed[best_idx], self.y_observed[best_idx]

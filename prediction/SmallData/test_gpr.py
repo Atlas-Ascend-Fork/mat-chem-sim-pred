@@ -215,6 +215,40 @@ def test_bo_on_simple_function():
     assert abs(best_x.item() - 0.5) < 0.2, f"BO failed: got x={best_x.item()}"
 
 
+def check_bo_vector_dimension(d):
+    np.random.seed(42 + d)
+    torch.manual_seed(42 + d)
+    bounds = np.zeros((d, 2), dtype=np.float32)
+    bounds[:, 1] = 1.0
+    gp = GaussianProcessRegressor(
+        kernel=RBFKernel(length_scale=0.2, variance=1.0),
+        noise_scale=0.01,
+    )
+    bo = BayesianOptimizer(gp, bounds, n_initial=2)
+    seen_shapes = []
+
+    def objective(x):
+        seen_shapes.append(tuple(x.shape))
+        value = x[0] + 2 * x[1]
+        if d == 3:
+            value = value + 3 * x[2]
+        return value
+
+    best_x, best_y = bo.maximize(objective, n_iter=1)
+
+    assert seen_shapes == [(d,)] * 3
+    assert best_x.shape == (d,)
+    assert best_y.shape == ()
+    assert torch.stack(bo.x_observed).shape == (3, d)
+    assert torch.stack(bo.y_observed).shape == (3,)
+
+
+def test_bo_objective_receives_rank_one_parameters_for_multiple_dimensions():
+    """The public objective contract is a single parameter vector (d,)."""
+    for d in (2, 3):
+        check_bo_vector_dimension(d)
+
+
 def main():
     print("=" * 60)
     print("Gaussian Process Test Suite")
@@ -229,6 +263,7 @@ def main():
     test_gp_training()
     test_acquisition_functions()
     test_bo_on_simple_function()
+    test_bo_objective_receives_rank_one_parameters_for_multiple_dimensions()
 
     print("=" * 60)
     print("All tests completed.")
