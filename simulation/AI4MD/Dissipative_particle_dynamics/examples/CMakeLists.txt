@@ -6,10 +6,17 @@ add_executable(dpd_ascendc_demo
     dpd_ascendc_demo.cpp
 )
 
+# 显式引入 op_host 头文件目录（include_directories 不跨同级目录生效）
+target_include_directories(dpd_ascendc_demo PRIVATE ${CMAKE_SOURCE_DIR}/op_host)
+
 target_link_libraries(dpd_ascendc_demo
     dpd_host
-    dpd_kernel
 )
+
+# 内核库未启用（顶层跳过 op_kernel）时不链接，启用后自动生效
+if(TARGET dpd_kernel)
+    target_link_libraries(dpd_ascendc_demo dpd_kernel)
+endif()
 
 # 设置可执行文件属性
 set_target_properties(dpd_ascendc_demo PROPERTIES

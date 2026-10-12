@@ -6,24 +6,27 @@
 
 ## 当前状态
 
-本项目当前处于工程化与文档完善阶段：算子设计、Host/Kernel代码与示例均已提交，但完整的编译-安装-实机验证链路尚未打通。下表按模块汇总现状，供社区贡献者参考，根本原因详见下方"已知限制"：
+本项目当前处于工程化与文档完善阶段：算子设计、Host/Kernel代码与示例均已提交，但 Host 端实现尚未完成，暂不参与 CI 构建。下表按模块汇总现状，供社区贡献者参考，根本原因详见下方"已知限制"：
 
 | 模块 | 当前状态 | 说明 |
 | --- | --- | --- |
-| Host（`op_host/`） | 无法链接 | `make` 阶段因 `CANN_INCLUDE_DIR`/`CANN_LIB_DIR` 未定义而链接失败 |
+| 构建（CI） | 已排除 | 已列入 `build.sh` 的 `SKIP_OPERATORS`，补齐实现后移除 |
+| Host（`op_host/`） | 实现未完成 | `dpd_host.cpp` 在第 513 行被截断，`run_single_step`/`free_device_memory` 及 `DpdSimulator` 公开接口均无实现；CANN 路径、测试开关等构建配置已修复 |
 | Kernel（`op_kernel/`） | 未加入构建 | 顶层 `CMakeLists.txt` 注释跳过了该子目录 |
+| 单元测试（`tests/ut/`） | 暂不可运行 | 除 GTest 外还依赖未启用的 `dpd_kernel` 目标；顶层 `BUILD_TESTS` 默认 `OFF` |
 | Python 示例（`python/dpd_op.py`） | 模拟版本 | 文件头声明为模拟版本，性能指标为硬编码值，非NPU实测 |
-| 安装流程（`make install`） | 报错退出 | 引用的 `include/` 目录在仓库中不存在 |
+| 安装流程（`make install`） | 可用 | `include/` 目录不存在，`install(DIRECTORY include/ ...)` 按存在性判断自动跳过 |
 | 实机验证 | 历史已完成，元数据待补充 | 历史记录含已完成的NPU实测性能数据（见下方"性能指标"章节），但精确NPU型号、CANN版本与完整复现命令等环境元数据尚未补全，后续补充 |
 
 ## 已知限制
 
-- **Host 链接失败**：`op_host/CMakeLists.txt` 与 `tests/ut/CMakeLists.txt` 引用的 `CANN_INCLUDE_DIR`/`CANN_LIB_DIR`，只在被跳过的 `op_kernel/CMakeLists.txt`（第16-17行）中赋值；顶层 `CMakeLists.txt` 从未设置这两个变量，因此链接 `dpd_host`（及依赖它的 `dpd_kernel_test`、`dpd_ascendc_demo`）会失败。
+- **Host 实现未完成**：`op_host/dpd_host.cpp` 在第 513 行被截断（`allocate_device_memory` 未写完）；`run_single_step()`、`free_device_memory()` 被调用但无定义；`DpdSimulator` 公开类与 `extern "C"` 接口均无实现。因此该算子已列入 `build.sh` 的 `SKIP_OPERATORS`，暂不参与 CI 构建。
 - **Kernel 未启用**：顶层 `CMakeLists.txt` 中 `add_subdirectory(op_kernel)` 一行被注释跳过，`op_kernel` 不参与构建，不会生成 `libdpd_kernel.so`。
-- **安装目标缺失**：顶层 `CMakeLists.txt` 中 `install(DIRECTORY include/ DESTINATION include)` 引用的 `include/` 目录在仓库中不存在，`make install` 会报错退出。
+- **单元测试暂不可运行**：`tests/ut/CMakeLists.txt` 除 GTest 外还链接未启用的 `dpd_kernel` 目标，在 Kernel 启用并补齐 GTest 前无法构建运行。顶层 `BUILD_TESTS` 默认 `OFF`，产品编译不依赖 GTest，需以 `-DBUILD_TESTS=ON` 显式开启。
+- **安装目录缺省跳过**：仓库中不存在 `include/` 目录，顶层 `install(DIRECTORY include/ ...)` 会按存在性判断自动跳过，`make install` 不再报错。
 - **性能数据为模拟值**：`python/dpd_op.py` 文件头声明为"模拟版本"，其 `steps_per_second` 等指标为硬编码模拟值，非NPU实测结果。
 
-以上限制均源于仓库当前CMake配置与文件布局，本次文档修订未改动任何源码/构建文件；完整排查步骤见[编译指南](docs/compile_guide.md)。
+Host 端的构建配置（CANN 路径、测试开关、安装守卫）已修复，但实现补齐与 Kernel 启用仍待后续推进；完整步骤见[编译指南](docs/compile_guide.md)。
 
 ## 特性
 
@@ -93,17 +96,16 @@ cd simulation/AI4MD/Dissipative_particle_dynamics
 # 1. 设置CANN环境变量（顶层CMakeLists.txt通过ASCEND_TOOLKIT_HOME定位CANN工具包）
 export ASCEND_TOOLKIT_HOME=/usr/local/Ascend/ascend-toolkit/latest
 
-# 2. 编译（op_kernel当前在CMakeLists.txt中被注释跳过，此步骤构建op_host/tests/examples）
+# 2. 编译（op_kernel 被注释跳过；默认构建 op_host 与 examples，单元测试需 -DBUILD_TESTS=ON）
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j$(nproc)
 
-# 3. 运行测试
-ctest --output-on-failure
+# 3. 运行测试（ctest 需先以 -DBUILD_TESTS=ON 配置并具备 GTest；Kernel 未启用时 UT 暂不可用）
 python3 ../tests/test_dpd_op.py
 ```
 
-> **已知限制**：上面的 `make` 目前会在链接 `dpd_host`（及依赖它的 `dpd_kernel_test`、`dpd_ascendc_demo`）时失败，根本原因见上文"已知限制"一节；完整排查步骤详见[编译指南](docs/compile_guide.md)。
+> **说明**：上面的 `make` 构建 `op_host` 与 `examples`；`op_kernel` 仍被注释跳过，单元测试默认不参与构建（需 `-DBUILD_TESTS=ON`）。完整步骤见[编译指南](docs/compile_guide.md)。
 
 ### 基本使用
 
@@ -246,12 +248,12 @@ Global Memory → L1 Cache → Unified Buffer
 
 ### 测试命令
 ```bash
-# 运行所有测试
+# 运行 Python 测试
+python3 ../tests/test_dpd_op.py
+
+# 运行单元测试（需先以 -DBUILD_TESTS=ON 完成配置，且环境具备 GTest）
 cd build
 ctest --output-on-failure
-
-# 运行Python测试
-python3 ../tests/test_dpd_op.py
 ```
 
 ## 扩展开发

@@ -6,6 +6,7 @@
 #define DPD_PARAMS_H
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 // DPD模拟参数结构体（与内核端对齐）
@@ -96,7 +97,7 @@ struct ParticleData {
     
     // 检查数据一致性
     bool validate() const {
-        int32_t n = size();
+        const size_t n = positions.size() / 3;
         return (positions.size() == n * 3) &&
                (velocities.size() == n * 3) &&
                (forces.size() == n * 3) &&
@@ -128,6 +129,20 @@ struct DpdResult {
     
     // 构造函数
     DpdResult() : total_time(0.0f), steps_per_second(0.0f), num_steps(0), success(true) {}
+};
+
+// 性能测试统计结果
+struct PerformanceStats {
+    int32_t total_runs;         // 计划运行次数
+    int32_t successful_runs;    // 实际成功次数
+    int64_t total_time_ms;      // 总耗时（毫秒）
+    float avg_time_per_run_ms;  // 平均单次耗时（毫秒）
+    float runs_per_second;      // 每秒运行次数
+    bool success;               // 是否成功
+
+    PerformanceStats()
+        : total_runs(0), successful_runs(0), total_time_ms(0),
+          avg_time_per_run_ms(0.0f), runs_per_second(0.0f), success(true) {}
 };
 
 // 邻居列表结构体（主机端）

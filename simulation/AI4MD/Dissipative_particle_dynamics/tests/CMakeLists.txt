@@ -1,8 +1,8 @@
 # tests/CMakeLists.txt
 # DPD算子测试构建配置
 
+# BUILD_TESTS 由顶层 CMakeLists.txt 声明（默认 OFF，UT 需显式开启）
 # 设置测试选项
-option(BUILD_TESTS "构建测试" ON)
 option(BUILD_PYTHON_TESTS "构建Python测试" ON)
 
 if(BUILD_TESTS)

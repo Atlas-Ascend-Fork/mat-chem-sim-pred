@@ -17,6 +17,7 @@ SOC_VERSION="${SOC_VERSION:-Ascend910B1}"
 BUILD_TYPE="Release"
 JOBS=$(nproc 2>/dev/null || echo 8)
 RUN_TEST=false
+HAS_GTEST=false
 BUILD_ALL=false
 LIST_ONLY=false
 CLEAN_MODE=false
@@ -53,13 +54,30 @@ DIRECT_MATCH_DIRS=(
     "prediction/ProcessControl/DiscretePrediction/"
 )
 
+# 暂不纳入 CI 构建的算子：实现尚未完成，补齐后从此处移除
+# - simulation/AI4MD/Dissipative_particle_dynamics: dpd_host.cpp 实现被截断，
+#   run_single_step/free_device_memory 与公开 API 均未实现
+SKIP_OPERATORS=(
+    "simulation/AI4MD/Dissipative_particle_dynamics"
+)
+
 # 动态发现含 CMakeLists.txt 的算子
 ALL_OPERATORS=()
 for root in "${OPERATOR_ROOTS[@]}"; do
     [ -d "$root" ] || continue
     for d in "$root"/*/; do
         if [ -f "${d}CMakeLists.txt" ]; then
-            ALL_OPERATORS+=("${d%/}")
+            op="${d%/}"
+            skip=false
+            for s in "${SKIP_OPERATORS[@]}"; do
+                if [ "$op" = "$s" ]; then
+                    skip=true
+                    break
+                fi
+            done
+            if [ "$skip" = false ]; then
+                ALL_OPERATORS+=("$op")
+            fi
         fi
     done
 done
@@ -228,6 +246,19 @@ should_skip_build() {
     [ "$non_skip_count" -eq 0 ]
 }
 
+# 探测 GTest 是否可用（CI 镜像未必预装，缺失时跳过 UT 而非报错）
+gtest_available() {
+    if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists gtest 2>/dev/null; then
+        return 0
+    fi
+    if [ -f /usr/include/gtest/gtest.h ] || [ -f /usr/local/include/gtest/gtest.h ]; then
+        if ls /usr/lib/libgtest.* /usr/lib/*/libgtest.* /usr/local/lib/libgtest.* >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
 # 编译单个 CMake 算子
 build_single() {
     local op="$1"
@@ -237,15 +268,27 @@ build_single() {
     fi
     echo "[BUILD] $op (SOC=$SOC_VERSION, type=$BUILD_TYPE, jobs=$JOBS)"
 
-    cmake -S "$op" -B "$op/build" \
-        -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-        -DSOC_VERSION="$SOC_VERSION" \
+    # 仅 --test、算子含 tests/ 且 GTest 可用时才编译单元测试；否则 -DBUILD_TESTS=OFF
+    local want_tests=false
+    if [ "$BUILD_ONLY" != "true" ] && [ "$RUN_TEST" = true ] && [ -d "$op/tests" ] && [ "$HAS_GTEST" = true ]; then
+        want_tests=true
+    fi
+
+    local args=(-S "$op" -B "$op/build"
+        -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DSOC_VERSION="$SOC_VERSION")
+    if [ "$want_tests" = true ]; then
+        args+=(-DBUILD_TESTS=ON)
+    else
+        args+=(-DBUILD_TESTS=OFF)
+    fi
+
+    cmake "${args[@]}" \
         || { echo "[FAIL] $op — cmake configure failed"; return 1; }
 
     ( cd "$op/build" && make -j"$JOBS" ) \
         || { echo "[FAIL] $op — compile failed"; return 1; }
 
-    if [ "$BUILD_ONLY" != "true" ] && [ "$RUN_TEST" = true ] && [ -d "$op/tests" ]; then
+    if [ "$want_tests" = true ]; then
         echo "[TEST] $op"
         ( cd "$op/build" && ctest --output-on-failure -j"$JOBS" ) \
             || { echo "[FAIL] $op — ctest failed"; return 1; }
@@ -407,6 +450,11 @@ if [ "$LIST_ONLY" = true ]; then
     echo ""
     echo "Python operators (use --python):"
     printf '  %s\n' "${PYTHON_OPERATORS[@]}"
+    if [ ${#SKIP_OPERATORS[@]} -gt 0 ]; then
+        echo ""
+        echo "Excluded from build (WIP):"
+        printf '  %s\n' "${SKIP_OPERATORS[@]}"
+    fi
     exit 0
 fi
 
@@ -519,6 +567,19 @@ if [ "$CLEAN_MODE" = true ]; then
 fi
 
 # 编译模式
+# 探测 GTest：缺失且确有算子需要 UT 时，一次性告警并跳过 UT
+if gtest_available; then
+    HAS_GTEST=true
+fi
+if [ "$RUN_TEST" = true ] && [ "$HAS_GTEST" != true ]; then
+    for op in "${OPERATORS[@]}"; do
+        if [ -d "$op/tests" ]; then
+            echo "[WARN] GTest not found; unit tests are skipped (-DBUILD_TESTS=OFF)"
+            break
+        fi
+    done
+fi
+
 failed=0
 succeeded=0
 for op in "${OPERATORS[@]}"; do

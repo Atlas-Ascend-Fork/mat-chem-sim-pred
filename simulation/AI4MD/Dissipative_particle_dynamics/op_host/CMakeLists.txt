@@ -37,13 +37,11 @@ set_target_properties(dpd_host PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-# 链接库
+# 链接库（主机端仅使用 aclrt* 运行时接口，不依赖 acl_op / acl_op_compiler）
 target_link_libraries(dpd_host
     # dpd_kernel  # 暂时跳过内核库
     ${CANN_LIB_DIR}/libascendcl.so
     ${CANN_LIB_DIR}/libruntime.so
-    ${CANN_LIB_DIR}/libacl_op.so
-    ${CANN_LIB_DIR}/libacl_op_compiler.so
 )
 
 # 添加Python绑定目标（可选）

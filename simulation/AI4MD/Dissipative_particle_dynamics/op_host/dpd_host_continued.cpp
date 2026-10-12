@@ -7,6 +7,7 @@
 #include <sstream>
 #include <random>
 #include <cmath>
+#include <chrono>
 
 namespace dpd_utils {
 
@@ -181,7 +182,7 @@ DpdParams DpdConfig::test_config(int32_t num_particles) {
     return params;
 }
 
-DpdParams DpdConfig::performance_config(int32_t num_particles) {
+DpdParams DpdConfig::benchmark_config(int32_t num_particles) {
     DpdParams params = default_config();
     params.num_particles = num_particles;
     params.num_steps = 1000;
