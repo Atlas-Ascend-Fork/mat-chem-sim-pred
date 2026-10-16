@@ -77,3 +77,55 @@ def test_host_api_contains_attention_contract():
     ).read_text()
     assert "aclnnAttentionalAggregationFused" in source
     assert "gates" in source
+
+
+def _kernel_reference(graph_ptr, features, gates, initial_max):
+    """Mirror the kernel max-subtraction path with a configurable initial max."""
+    output = np.empty((graph_ptr.size - 1, features.shape[1]), dtype=np.float32)
+    for graph in range(graph_ptr.size - 1):
+        begin, end = int(graph_ptr[graph]), int(graph_ptr[graph + 1])
+        maximum = np.float32(initial_max)
+        for node in range(begin, end):
+            maximum = max(maximum, gates[node])
+        denominator = np.float32(0.0)
+        for node in range(begin, end):
+            denominator = np.float32(
+                denominator + np.exp(np.float32(gates[node] - maximum))
+            )
+        for channel in range(features.shape[1]):
+            accumulator = np.float32(0.0)
+            for node in range(begin, end):
+                coefficient = np.float32(
+                    np.exp(np.float32(gates[node] - maximum)) / denominator
+                )
+                accumulator = np.float32(
+                    accumulator + coefficient * features[node, channel]
+                )
+            output[graph, channel] = accumulator
+    return output
+
+
+def test_minimum_finite_gates_do_not_produce_nan():
+    """每个图的门全为最小有限 FP32 时输出必须是有限加权平均。
+
+    kernel 用十进制字面量 -3.402823e38 初始化最大值，该值略大于 -FLT_MAX，
+    于是所有 gate - maximum 都小到 exp 下溢为 0，分母为 0 产生 0/0 = NaN。
+    以 -FLT_MAX 初始化即可修复该边界。
+    """
+    graph_ptr = np.array([0, 2, 3], np.int32)
+    features = np.array([[1, 2], [3, 4], [5, 6]], np.float32)
+    lowest = np.float32(np.finfo(np.float32).min)
+    gates = np.full(3, lowest, np.float32)
+
+    # 触发缺陷的字面量确实大于 -FLT_MAX
+    assert np.float32(-3.402823e38) > lowest
+
+    fixed = _kernel_reference(graph_ptr, features, gates, lowest)
+    assert np.isfinite(fixed).all()
+    np.testing.assert_allclose(
+        fixed, reference().attentional_aggregation(graph_ptr, features, gates)
+    )
+
+    with np.errstate(invalid="ignore", divide="ignore"):
+        buggy = _kernel_reference(graph_ptr, features, gates, np.float32(-3.402823e38))
+    assert np.isnan(buggy).all()

@@ -6,6 +6,8 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See LICENSE in the root of the software repository for the full text of the License.
  */
+#include <cfloat>
+
 #include "kernel_operator.h"
 
 using namespace AscendC;
@@ -74,7 +76,7 @@ class AttentionalAggregationFusedKernel
         {
             const int32_t begin = graphPtrGm_.GetValue(graph);
             const int32_t end = graphPtrGm_.GetValue(graph + 1U);
-            float maximum = -3.402823e38F;
+            float maximum = -FLT_MAX;
             for (int32_t node = begin; node < end; ++node)
             {
                 const float gate = gatesGm_.GetValue(node);
