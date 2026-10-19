@@ -1,0 +1,2 @@
+add_executable(test_fused_kan_spline_basis_linear_ut test_fused_kan_spline_basis_linear.cpp)
+add_test(NAME test_fused_kan_spline_basis_linear_ut COMMAND test_fused_kan_spline_basis_linear_ut)
