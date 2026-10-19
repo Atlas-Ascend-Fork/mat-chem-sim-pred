@@ -1,0 +1,2 @@
+add_executable(test_timesnet2d_period_fold_aggregate_ut test_timesnet2d_period_fold_aggregate.cpp)
+add_test(NAME test_timesnet2d_period_fold_aggregate_ut COMMAND test_timesnet2d_period_fold_aggregate_ut)

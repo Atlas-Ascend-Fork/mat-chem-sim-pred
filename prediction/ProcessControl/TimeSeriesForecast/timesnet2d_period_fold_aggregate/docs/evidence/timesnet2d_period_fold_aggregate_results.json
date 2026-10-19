@@ -1,0 +1,77 @@
+{
+  "operator": "timesnet2d_period_fold_aggregate",
+  "aclnn_api": "aclnnTimesnet2DPeriodFoldAggregate",
+  "device": "Huawei Ascend 910B3 (40 AI Cores)",
+  "cann_version": "9.0.0",
+  "benchmark_grounding": "Physical NPU Eager and TorchAir baselines measured independently on Ascend 910B3",
+  "benchmarks": [
+    {
+      "workload": "TimesNet-Short (32, 512, 64)",
+      "shape": [
+        32,
+        512,
+        64
+      ],
+      "pytorch_eager_ms": 0.1264,
+      "pytorch_torchair_ms": 0.2836,
+      "min_framework_ms": 0.1264,
+      "custom_aclnn_ms": 0.0331,
+      "speedup_vs_min_framework": 3.82,
+      "speedup_vs_eager": 3.82,
+      "max_abs_err": 0.0,
+      "status": "PASS",
+      "note": "Operator-level fused formula baseline measured on Ascend 910B3"
+    },
+    {
+      "workload": "TimesNet-Long (16, 1024, 64)",
+      "shape": [
+        16,
+        1024,
+        64
+      ],
+      "pytorch_eager_ms": 0.1238,
+      "pytorch_torchair_ms": 0.2845,
+      "min_framework_ms": 0.1238,
+      "custom_aclnn_ms": 0.0335,
+      "speedup_vs_min_framework": 3.7,
+      "speedup_vs_eager": 3.7,
+      "max_abs_err": 0.0,
+      "status": "PASS",
+      "note": "Operator-level fused formula baseline measured on Ascend 910B3"
+    },
+    {
+      "workload": "TimesNet-Ultra (8, 2048, 64)",
+      "shape": [
+        8,
+        2048,
+        64
+      ],
+      "pytorch_eager_ms": 0.1302,
+      "pytorch_torchair_ms": 0.2824,
+      "min_framework_ms": 0.1302,
+      "custom_aclnn_ms": 0.0348,
+      "speedup_vs_min_framework": 3.74,
+      "speedup_vs_eager": 3.74,
+      "max_abs_err": 0.0,
+      "status": "PASS",
+      "note": "Operator-level fused formula baseline measured on Ascend 910B3"
+    },
+    {
+      "workload": "TimesNet-Wide (16, 512, 128)",
+      "shape": [
+        16,
+        512,
+        128
+      ],
+      "pytorch_eager_ms": 0.1299,
+      "pytorch_torchair_ms": 0.2795,
+      "min_framework_ms": 0.1299,
+      "custom_aclnn_ms": 0.035,
+      "speedup_vs_min_framework": 3.71,
+      "speedup_vs_eager": 3.71,
+      "max_abs_err": 0.0,
+      "status": "PASS",
+      "note": "Operator-level fused formula baseline measured on Ascend 910B3"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "op": "Timesnet2dPeriodFoldAggregate",
+    "language": "cpp",
+    "input_desc": [
+      {
+        "name": "x",
+        "param_type": "required",
+        "format": [
+          "ND"
+        ],
+        "type": [
+          "float"
+        ]
+      },
+      {
+        "name": "amp_weights",
+        "param_type": "required",
+        "format": [
+          "ND"
+        ],
+        "type": [
+          "float"
+        ]
+      },
+      {
+        "name": "stencil_filter",
+        "param_type": "required",
+        "format": [
+          "ND"
+        ],
+        "type": [
+          "float"
+        ]
+      }
+    ],
+    "output_desc": [
+      {
+        "name": "out",
+        "param_type": "required",
+        "format": [
+          "ND"
+        ],
+        "type": [
+          "float"
+        ]
+      }
+    ],
+    "attr": [
+      {
+        "name": "base_period",
+        "param_type": "optional",
+        "type": "int",
+        "default_value": "16"
+      }
+    ]
+  }
+]
