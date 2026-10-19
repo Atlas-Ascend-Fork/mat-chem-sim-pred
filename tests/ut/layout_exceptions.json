@@ -1,0 +1,63 @@
+{
+  "_comment": "基线例外：记录当前已存在的目录契约缺口。只允许缩小，不允许新增；新增缺口会让 tests/ut/test_repo_layout.py 失败。",
+  "non_snake_case": [
+    "simulation/AI4MD/Dissipative_particle_dynamics",
+    "simulation/AI4MD/GAFF2",
+    "simulation/AI4MD/Lennard_Jones",
+    "simulation/AI4MD/PME",
+    "simulation/AI4MD/SHAKE",
+    "simulation/AI4MD/velocity-verlet"
+  ],
+  "missing_readme": [
+    "simulation/AI4PDE/deeponet",
+    "simulation/AI4PDE/fno",
+    "simulation/AI4PDE/pinn"
+  ],
+  "missing_tests": [
+    "simulation/AI4MD/GAFF2",
+    "simulation/AI4MD/PME",
+    "simulation/AI4MD/SHAKE",
+    "simulation/AI4MD/velocity-verlet"
+  ],
+  "tests_without_reference": [
+    "simulation/AI4MD/Dissipative_particle_dynamics",
+    "simulation/AI4MD/Lennard_Jones",
+    "simulation/AI4PDE/deeponet",
+    "simulation/AI4PDE/fno",
+    "simulation/AI4PDE/pinn",
+    "prediction/ProcessControl/PIDModelFit/pid_control_performance_metrics",
+    "prediction/ProcessControl/PIDModelFit/pid_fopdt_basis_gemm_fit",
+    "prediction/ProcessControl/PIDModelFit/pid_fopdt_batch_rollout_score",
+    "prediction/ProcessControl/PIDModelFit/pid_ipdt_basis_gemm_fit",
+    "prediction/ProcessControl/PIDModelFit/pid_ipdt_batch_rollout_score",
+    "prediction/ProcessControl/PIDModelFit/pid_process_capability_metrics",
+    "prediction/ProcessControl/PIDModelFit/pid_residual_diagnostics",
+    "prediction/ProcessControl/PIDModelFit/pid_sopdt_basis_gemm_fit",
+    "prediction/ProcessControl/PIDModelFit/pid_sopdt_batch_rollout_score",
+    "prediction/ProcessControl/PIDModelFit/pid_step_response_features",
+    "prediction/ProcessControl/PIDModelFit/pid_tuning_rule_batch",
+    "prediction/ProcessControl/PIDModelFit/pid_windowed_residual_diagnostics",
+    "prediction/ProcessControl/TimeSeriesForecast/autocorr_fused_aggregate",
+    "prediction/ProcessControl/TimeSeriesForecast/batch_spd_inv_fp32",
+    "prediction/ProcessControl/TimeSeriesForecast/cfc_scan_fused",
+    "prediction/ProcessControl/TimeSeriesForecast/cornn_scan_fused",
+    "prediction/ProcessControl/TimeSeriesForecast/ltc_scan_fused",
+    "prediction/ProcessControl/TimeSeriesForecast/s6scan_fused",
+    "prediction/ProcessControl/TimeSeriesForecast/selective_scan_1d",
+    "prediction/ProcessControl/TimeSeriesForecast/sru_scan_fused",
+    "prediction/ProcessControl/TimeSeriesForecast/tirex_slstm_cell",
+    "prediction/ProcessControl/TimeSeriesForecast/unicornn_scan_fused",
+    "prediction/ProcessControl/NonTemporalPrediction/csr_appnp_propagate_fused",
+    "prediction/ProcessControl/NonTemporalPrediction/csr_arma_stack_propagate_fused",
+    "prediction/ProcessControl/NonTemporalPrediction/csr_chebyshev_basis_k3_fused",
+    "prediction/ProcessControl/NonTemporalPrediction/csr_gcn2_residual_propagate_fused",
+    "prediction/ProcessControl/NonTemporalPrediction/csr_hypergraph_attention_two_stage_propagate_fused",
+    "prediction/ProcessControl/NonTemporalPrediction/csr_tagcn_basis_k3_fused",
+    "prediction/ProcessControl/NonTemporalPrediction/dimenet_triplet_angle_fused",
+    "prediction/ProcessControl/NonTemporalPrediction/dimenet_triplet_enumerate_fused",
+    "prediction/ProcessControl/NonTemporalPrediction/gemnet_quadruplet_geometry_fused"
+  ],
+  "skipped_operators": [
+    "simulation/AI4MD/Dissipative_particle_dynamics"
+  ]
+}

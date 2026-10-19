@@ -1,0 +1,4 @@
+# Python 依赖（参考实现与测试；不参与 Ascend C 算子编译）
+numpy>=1.24
+pytest>=7.0
+torch>=2.0

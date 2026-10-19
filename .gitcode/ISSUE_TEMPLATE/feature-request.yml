@@ -1,0 +1,36 @@
+name: 特性请求
+description: 提议新增算子、能力或构建/测试改进
+title: "[Feature] "
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 场景与问题
+      description: 谁在什么场景下遇到什么问题；对应上游模型或论文
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 方案
+      description: 算子语义、输入输出、与现有算子的关系（是否重复）
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: 验证方式
+      description: CPU reference、精度阈值、性能口径、测试数据来源
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 归属
+      options:
+        - 现有算子族内新增算子
+        - 需要新增算子族
+        - 构建 / CI / 文档改进
+        - 尚不确定
+    validations:
+      required: true

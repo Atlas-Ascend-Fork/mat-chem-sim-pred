@@ -1,6 +1,11 @@
 # 构建产物（build.sh 就地生成）—— 禁止入库
 build/
 build_out/
+# 本地测试/工具缓存
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
 # 注意：算子源码目录 reference/（小写）是正确性基准，必须入库。
 # 这里不能使用大小写不敏感的 Reference/ 规则：macOS 默认 core.ignorecase=true，
 # 会把 reference/ 一并忽略，导致 reference 静默丢失、无法提交。

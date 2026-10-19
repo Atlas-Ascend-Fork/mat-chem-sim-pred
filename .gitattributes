@@ -1,0 +1,10 @@
+# 统一换行与文本属性；二进制/大文件不入库
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.so binary
+*.o binary
+*.a binary

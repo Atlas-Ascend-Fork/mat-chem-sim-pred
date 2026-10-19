@@ -1,0 +1,24 @@
+# 开源 / 交付范围分级（社区工具读取，不参与构建）
+# release   : 随仓开源的路径
+# unrelease : 不进入发布包（测试、示例、构建产物、实验区）
+mat_chem_sim_pred:
+  team: "mat_chem_sim_pred"
+  src:
+    release:
+      - simulation
+      - prediction
+      - common
+      - cmake
+      - scripts
+    unrelease:
+      - "*/tests"
+      - "*/examples"
+      - "**/build"
+      - "**/build_out"
+      - "**/__pycache__"
+      - "**/.pytest_cache"
+      - "experimental"
+      - "tutorial"
+  llt:
+    ut_check: true
+    st_check: false

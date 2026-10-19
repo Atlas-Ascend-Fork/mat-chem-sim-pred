@@ -1,0 +1,40 @@
+name: Bug 报告
+description: 报告可复现的算子、构建或文档问题
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先搜索已有 Issue。涉及算子数值问题时，请附上 reference 对比数据与精度阈值。
+  - type: textarea
+    id: summary
+    attributes:
+      label: 现象
+      description: 实际发生了什么，期望是什么
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 命令、输入、commit/tag
+      placeholder: |
+        1. git checkout <commit>
+        2. bash build.sh <op>
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境
+      description: CANN 版本、SOC、OS、编译器、是否 NPU 实机
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志与误差数据
+      description: 关键日志、max_abs_err / max_rel_err / mismatch_count
+    validations:
+      required: false

@@ -191,6 +191,9 @@ git log --pretty=fuller
 - 科学计算方向 → `simulation/<子方向>/<算子名>/`
 - 预测优化方向 → `prediction/<子方向>/<算子名>/`
 
+可被构建系统发现的算子族登记在 `cmake/variables.cmake` 的 `MATCHEM_OP_CATEGORIES`；
+暂缓构建、Python 算子与共享目录同样在该文件登记。`build.sh` 与顶层 `CMakeLists.txt` 只消费这份配置。
+
 标准结构如下（参考 `template/operator_example.md`）：
 
 ```

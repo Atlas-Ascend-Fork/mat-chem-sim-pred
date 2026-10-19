@@ -1,0 +1,16 @@
+Third-Party Open Source Software Notice
+
+本仓库源码以 Apache License 2.0 发布。
+
+参考实现与测试使用以下第三方软件，均不随本仓源码分发，具体版本由
+CI 镜像与 requirements.txt 决定：
+
+  - NumPy (BSD-3-Clause)
+  - PyTorch (BSD-3-Clause)
+  - pytest (MIT)
+  - PyYAML (MIT)
+  - pypto (CANN Open Software License Agreement Version 2.0)
+
+各依赖的完整许可证文本与版权声明，请查阅对应上游项目的发布物。
+如在本仓中引入新的第三方代码，必须在 PR 中注明来源与许可证，并更新
+Third_Party_Open_Source_Software_List.yaml。

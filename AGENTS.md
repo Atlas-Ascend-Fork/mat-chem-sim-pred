@@ -5,7 +5,8 @@
 ## 1. 仓库与工作边界
 
 - 这是基于 CANN / Ascend C 的材料、化学、科学计算与预测优化算子仓库，主要代码位于 `simulation/` 与 `prediction/`。
-- 仓库**没有顶层 CMake 构建入口**；每个算子目录应能够独立配置、编译和测试。
+- 顶层 `CMakeLists.txt` 只配置公共层 `common/` 与可选的算子聚合；日常构建仍走 `bash build.sh <op>`，每个算子目录保持独立配置、编译和测试的能力。
+- 可选的 `cmake -S . -B build -DMATCHEM_BUILD_OPS=ON` 是实验性聚合模式，只有完成算子 CMake 契约迁移（roadmap Step 3）后才会成为默认入口。
 - 修改前先阅读目标目录的 `README.md`、`CMakeLists.txt`、`docs/`、`tests/` 及相邻同类算子；优先复用同级 `common/` 中确有跨算子共性的逻辑。
 - 不要擅自修改无关算子、批量格式化全仓库、提交构建产物、临时脚本、日志或测试缓存。
 - 不要将探索性原型与正式交付算子混在同一 PR；公开算子保持独立目录、Host API、kernel 入口和测试。
@@ -31,6 +32,7 @@
 ```
 
 - 以 `template/` 中的 `operator_example.md`、`algorithm.md`、`test_architecture.md` 为模板。
+- 算子族、暂缓算子、Python 算子与共享目录登记在 `cmake/variables.cmake`；新增算子无需修改 `build.sh` 或顶层 `CMakeLists.txt`。
 - 算法、reference、Host API 和 kernel 实现必须语义一致；不得为了通过测试而让 reference 反向拟合当前错误实现。
 - `README.md` 至少说明功能、应用场景、输入输出、构建与测试命令、性能摘要。
 - `docs/algorithm.md` 说明数学定义、边界条件和 NPU 实现策略；`api_reference.md` 说明 API、shape、dtype、workspace 与错误条件；`benchmark.md` 说明环境、命令、规模、计时口径和性能数据。
@@ -69,6 +71,7 @@
 # 所有变更的基础检查
 git diff --check
 pre-commit run --all-files
+python -m pytest tests/ut -q
 
 # 变更 Python 文件或 reference
 python -m compileall -q <changed-python-path>
@@ -96,10 +99,9 @@ ctest --test-dir <op>/build --output-on-failure
 
 | 工作流 | 实际覆盖内容 |
 |---|---|
-| `mat-chem-sim-pred_actions.yml` | 社区 PreBuild、CodeCheck、Post 流程，包括 SCA / 社区代码检查 |
-| `ci.yml` | `pre-commit run --all-files`；`prediction/SmallData/test_gpr.py` 的 PyTorch reference 测试 |
-| `operator-build.yml` | AI4MD（LJ、DPD、GAFF2）、AI4PDE（PINN、FNO、DeepONet）独立构建及部分 C++/Python 测试；材料性质预测 DAO NPU 测试 |
-| `nightly.yml` | 每周全量构建 AI4MD 与 AI4PDE，运行可用 C++ UT、GPR/DAO Python 测试，并生成构建报告 |
+| `mat-chem-sim-pred_actions.yml` | 唯一流水线，四段：PreBuild（镜像与 PR 文件清单）→ CodeCheck（pre-commit + 社区 SCA/CodeCheck）→ ReferenceTest（pytest 参考实现）→ AscendCBuildTest（ARM 上 Ascend C 编译 + NPU 用例） |
+
+- 本地复刻同一份门禁：`.local-ci/ci-local.sh`（不随仓提交），编排与上述四段一致，构建仍调用 `build.sh`。
 
 - CI 对 PR 的 merge commit 执行检查，并启用按 MR 的并发抢占；排查失败时以 merge commit 和流水线日志为准。
 - 新增目录或测试后，确认工作流能实际发现并运行它。若尚未接入 CI，在 PR 中明确说明，并补充对应工作流或后续接入计划。

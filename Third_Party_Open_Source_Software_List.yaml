@@ -1,0 +1,25 @@
+# 第三方开源软件清单
+#
+# 说明：下列依赖仅用于参考实现、测试或构建，不随本仓源码分发；
+# 具体版本由 CI 镜像与 requirements.txt 决定。引入新的第三方代码时在此登记。
+third_party:
+  - name: numpy
+    license: BSD-3-Clause
+    usage: CPU 参考实现与测试
+    distributed: false
+  - name: pytorch
+    license: BSD-3-Clause
+    usage: 参考实现与测试
+    distributed: false
+  - name: pytest
+    license: MIT
+    usage: 测试框架
+    distributed: false
+  - name: pyyaml
+    license: MIT
+    usage: 配置解析（CI / 工具脚本）
+    distributed: false
+  - name: pypto
+    license: CANN Open Software License Agreement Version 2.0
+    usage: DAO 参考实现的 tile 框架
+    distributed: false

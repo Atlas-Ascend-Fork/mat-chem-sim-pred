@@ -1,272 +1,158 @@
+<div align="center">
+
 # mat-chem-sim-pred
 
-[![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/hicann/mat-chem-sim-pred)
+[![license](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
+[![docs](https://img.shields.io/badge/docs-项目文档-green.svg)](docs/zh/README.md)
+[![contributing](https://img.shields.io/badge/贡献指南-teal)](CONTRIBUTING.md)
 
-## 项目简介
+</div>
 
-本仓库面向材料、化学与流程工业的科学计算和预测优化场景，基于华为 CANN（Ascend C）建设可复用的软件资产，包括模型实现与适配、算子、数据处理与评测脚本、工具链、示例和文档。
+---
 
-仓库覆盖的典型任务包括分子模拟、材料性质预测、反应路径优化、工艺过程建模、过程控制和时序预测等。
+## 🔥 最新动态
 
-核心定位：构建“**模拟 → 数据 → 预测 → 设计 → 优化**”的全链路材料与化学 AI 软件基础。
+- [2026/10] 仓库骨架对齐 CANN 算子仓：新增顶层 CMake 入口、`common/` 公共层、`docs/` 文档中心与目录契约测试；算子族 / 例外 / 共享目录收敛到 `cmake/variables.cmake` 单一配置源。
+- [2026/10] 补齐 7 个已入库算子的清单登记（Mamba-2 SSD 分块扫描、AttentionalAggregation、AGNN / GENConv / SuperGAT、EdgePooling、SortAggregation），算子总数口径统一为 61。
 
-## 仓库结构
+## 🚀 概述
 
-```
+mat-chem-sim-pred 是 [CANN](https://hiascend.com/software/cann) 面向材料、化学与流程工业的领域算子仓，交付可独立编译、可参考验证、可 benchmark 的 Ascend C 算子族。
+
+核心定位：**AI4S 模型子图的 NPU 融合算子仓**——把 PyG、PointNet++、DimeNet/GemNet、Mamba/SSM、Autoformer、PID 整定等上游模型里"框架不支持或需要多次 kernel launch"的子图，下沉为单个 Ascend C kernel。
+
+边界：
+
+- 收入：有明确 aclnn / Host API、有 CPU reference 与精度阈值、有性能口径的算子。
+- 不收：模型训练脚本、数据集、工具链与一次性实验代码；这些以 reference 或示例的形态留在仓外或 `experimental/`。
+
+算子总数与逐项说明见 [docs/zh/op_list.md](docs/zh/op_list.md)。
+
+## 📦 能力矩阵
+
+| 能力族 | 目录 | 算子数 | 服务场景 |
+|---|---|---:|---|
+| 分子动力学基础计算（AI4MD） | `simulation/AI4MD/` | 6 | 经典力场、静电求和、约束、积分、耗散粒子动力学 |
+| AI for PDE（AI4PDE） | `simulation/AI4PDE/` | 3 | PINN / FNO / DeepONet 推理 |
+| PID 整定全流程（PIDModelFit） | `prediction/ProcessControl/PIDModelFit/` | 12 | 模型辨识 → 诊断 → 整定 → 仿真选优 → 评估 |
+| 时序预测（TimeSeriesForecast） | `prediction/ProcessControl/TimeSeriesForecast/` | 14 | SSM 扫描、lag 聚合、LSH 分桶、不支持路径替换 |
+| 图 / 点云 / 分子几何（NonTemporalPrediction） | `prediction/ProcessControl/NonTemporalPrediction/` | 26 | GNN 传播与注意力聚合、点云邻域、分子多体几何 |
+| **合计** | | **61** | 其中 60 个纳入构建；DPD 实现未完成，暂缓 CI |
+
+另有两个 Python 参考实现，不计入算子数：`simulation/MaterialPropertyPrediction/DAO`、`prediction/SmallData`（GP 回归 / 贝叶斯优化）。
+
+> 规划中的方向（ML-MD、材料性质预测与结构生成等）见 [roadmap.md](roadmap.md)。
+
+## 🧱 仓库结构
+
+```text
 mat-chem-sim-pred/
-├── simulation/                              # 科学计算方向
-│   ├── MaterialPropertyPrediction/          # 材料性质预测与材料结构生成
-│   │   └── DAO/                             #   PyTorch 基础算子库
-│   ├── AI4MD/                               #   分子动力学基础计算（为 ML-MD 提供基础设施）
-│   │   ├── Lennard_Jones/                   #   LJ 力场算子 ✅
-│   │   ├── GAFF2/                           #   GAFF2 力场算子 ✅
-│   │   ├── PME/                             #   PME 静电算子 ✅
-│   │   ├── SHAKE/                           #   SHAKE 约束算子 ✅
-│   │   ├── velocity-verlet/                 #   Velocity Verlet 积分 ✅
-│   │   └── Dissipative_particle_dynamics/   #   DPD 耗散粒子动力学 ✅
-│   └── AI4PDE/                              # AI for PDE
-│       ├── pinn/                            #   PINN 算子 ✅
-│       ├── fno/                             #   FNO 算子 ✅
-│       ├── deeponet/                        #   DeepONet 算子 ✅
-│       └── pde_common/                      #   公共工具模块
-├── prediction/                              # 预测优化方向
-│   ├── SmallData/                           # 小数据预测优化模型
-│   │   ├── kernels.py                       #   GP 核函数参考实现 🔧
-│   │   └── gpr.py                           #   GP 回归 + BO 参考实现 🔧
-│   └── ProcessControl/                      # 工业过程控制与预测
-│       ├── PIDModelFit/                     #   PID 整定全流程算子（12 个）✅
-│       ├── TimeSeriesForecast/              #   时序预测模型算子（13 个）✅
-│       └── NonTemporalPrediction/           #   图学习、点云与分子图几何算子（26 个）✅
-├── template/                                # 贡献模板
-│   ├── algorithm.md                         #   算法说明模板
-│   ├── references.md                        #   参考文献模板
-│   ├── operator_example.md                  #   算子代码框架模板
-│   └── test_architecture.md                 #   测试架构模板
-├── roadmap.md                               # 项目路线图
-├── CONTRIBUTING.md                          # 贡献指南
-├── FAQ.md                                   # 常见问题
-└── AGENTS.md                                # 开发辅助规则
+├── cmake/                  # 构建配置与算子族单一配置源（variables.cmake）
+├── common/                 # 跨算子公共层（inc / src / tests）
+├── simulation/             # 科学计算：AI4MD、AI4PDE、材料性质预测参考实现
+├── prediction/             # 预测优化：PIDModelFit、TimeSeriesForecast、NonTemporalPrediction
+├── docs/zh/                # 文档中心：快速入门、算子清单、目录说明
+├── examples/               # 跨算子示例（当前仅占位，Step 3 落可编译骨架）
+├── experimental/           # 未成熟能力隔离区，默认不参与构建
+├── scripts/                # build.sh 的实现：构建、增量、Python / reference 测试
+├── tests/ut/               # 全仓目录契约测试（无需 CANN/NPU）
+├── template/               # 算子文档与代码模板
+├── tutorial/               # 教程 notebook
+├── CMakeLists.txt          # 顶层入口（公共层 + 可选算子聚合）
+├── build.sh                # 统一构建入口
+└── .gitcode/               # issue / PR 模板与 CI 工作流
 ```
 
-## 重点关注领域
+完整目录说明见 [docs/zh/appendix/dir_structure.md](docs/zh/appendix/dir_structure.md)。
 
-### 科学计算
+## 📌 版本配套
 
-| 子方向 | 状态 | 目标 | 关键算子/模型类型 |
-|--------|------|------|-------------------|
-| **材料性质预测与结构生成** | 🔧 PyTorch 参考 | 基于第一性原理数据构建材料性质快速预测与逆向生成能力 | 晶体图神经网络、材料描述符计算、晶体结构生成模型、相图预测等 |
-| **分子动力学基础计算（AI4MD）** | ✅ Ascend C 就绪 | 提供经典分子动力学模拟的力场、静电、约束、积分和粒子动力学基础组件，为后续 ML-MD 链路提供底层计算能力 | Lennard-Jones、GAFF2、PME、SHAKE、Velocity Verlet、DPD |
-| **机器学习分子动力学（ML-MD）** | 🔧 规划中/待建设 | 以机器学习势替代或增强经典力场，实现接近 DFT 精度的大体系长时间 MD 模拟 | DeepMD、SchNet/PaiNN、MACE/NequIP、ANI、SOAP/ACSF 在线描述符、D3/D4 色散校正、势能面在线拟合 |
-| **AI for PDE** | ✅ Ascend C 就绪 | 用 AI 方法加速或替代传统 PDE 求解器，覆盖流体/传热/结构力学 | PINN/FNO/DeepONet 推理算子等 |
+本仓源码随 CANN 社区版本发布。具体 tag 与 CANN 版本的对应关系，在 release 流程建立后登记到本表；
+在此之前请以 `.gitcode/workflows/` 使用的编译镜像与 [release-management](https://gitcode.com/cann/release-management) 为准。
 
-### 预测优化
+## 🛠️ 环境准备
 
-| 子方向 | 状态 | 目标 | 关键算子/模型类型 |
-|--------|------|------|-------------------|
-| **小数据预测优化模型** | 🔧 PyTorch 参考 | 解决标记数据稀少的化工场景，聚焦小样本/主动学习/贝叶斯优化 | 高斯过程回归、贝叶斯神经网络、贝叶斯优化、度量学习等 |
-| **工业过程控制模型辨识** | ✅ Ascend C 就绪 | 面向 PID 整定、自整定与数字孪生场景，覆盖模型辨识 → 诊断 → 整定 → 仿真选优 → 评估全流程 | 模型辨识（FOPDT/IPDT/SOPDT basis-GEMM fit）、残差诊断、PID 参数生成（ZN/IMC/CC）、候选闭环仿真/评分/选优、响应特征提取、控制性能与过程能力评估（共 12 个算子） |
-| **时序预测模型** | ✅ Ascend C 就绪 | 面向化工过程 DCS/传感器时序数据，将递归扫描、lag 聚合与不支持路径下沉为单 NPU kernel | Mamba/SSM 选择性扫描、Autoformer/Reformer 推理聚合、Koopa/DMD 批量 SPD 求逆、TiRex/xLSTM sLSTM 单元、CfC/coRNN/SRU/UnICORNN/LTC 连续时间 RNN 扫描融合（共 13 个算子） |
-| **非时序预测模型** | ✅ Ascend C 就绪 | 面向图学习、点云和分子图几何建模，将稀疏图传播、注意力聚合、邻域查询与几何特征计算下沉到 NPU kernel | GAT/GATv2、Graph Transformer、GraphSAGE、LightGCN、Signed GCN、ARMA、APPNP、FiLM、Hypergraph、ChebNet、GCNII、TAGCN、AttentionalAggregation、AGNN、GENConv、SuperGAT、EdgePooling、SortAggregation、PointNet++、Point Transformer、PPFNet、DimeNet、GemNet（共 26 个算子） |
+- CANN Toolkit（含 Ascend C 编译链）；使用前 `source /usr/local/Ascend/ascend-toolkit/set_env.sh`。
+- Python 3.9+（参考实现与测试）。
+- CMake ≥ 3.16、支持 C++17 的编译器；GTest 可选（缺失时跳过 C++ UT）。
+- 基础依赖一键安装（Ubuntu / Debian、RHEL / CentOS）：
 
-> ✅ Ascend C 就绪 = 已完成 Ascend C 算子开发，含完整测试 | 🔧 PyTorch 参考 = 提供 PyTorch 参考实现，可作为 Ascend C 迁移基础
+```bash
+bash install_deps.sh
+```
 
-> 详细算子规划请参见 [roadmap.md](roadmap.md)。
+无 NPU 的机器仍可运行目录契约测试与 Python 参考测试，见 [快速开始](#-快速开始)。
 
-## 算子清单
+## ⬇️ 源码下载
 
-本仓库当前共包含 **60 个 Ascend C 算子**，覆盖科学计算、工业过程控制、时序预测、图学习、点云和分子图几何等方向。另提供材料性质预测、DAO、GPR 等 PyTorch 参考实现。
+```bash
+git clone https://gitcode.com/cann/mat-chem-sim-pred.git
+cd mat-chem-sim-pred
+```
 
-### 科学计算 — 分子动力学基础计算（AI4MD）
+## ⚡ 快速开始
 
-> 当前 `simulation/AI4MD/` 已实现的 Ascend C 算子覆盖经典力场、静电求和、约束算法、时间积分和耗散粒子动力学等基础计算能力。
->
-> 这些组件可作为机器学习分子动力学（ML-MD）的底层基础设施，但不等同于 DeepMD、SchNet、MACE、NequIP 或 ANI 等机器学习势模型推理算子。ML 势推理、在线描述符、D3/D4 色散校正及势能面在线拟合当前均处于规划阶段，详见 [roadmap.md](roadmap.md)。
+```bash
+# 1. 看仓库里有哪些算子（无需 CANN）
+bash build.sh --list
 
-| 算子 | 说明 | 状态 |
-|------|------|------|
-| `Lennard_Jones` | Lennard-Jones 力场 | ✅ Ascend C |
-| `GAFF2` | GAFF2 力场 | ✅ Ascend C |
-| `PME` | PME 静电求和 | ✅ Ascend C |
-| `SHAKE` | SHAKE 约束算法 | ✅ Ascend C |
-| `velocity-verlet` | Velocity Verlet 积分器 | ✅ Ascend C |
-| `Dissipative_particle_dynamics` | DPD 耗散粒子动力学 | ✅ Ascend C |
+# 2. 目录契约测试（无需 CANN / NPU）
+python -m pytest tests/ut -q
 
-### 科学计算 — AI for PDE（AI4PDE）
+# 3. 编译单个算子（需要 CANN）
+bash build.sh simulation/AI4MD/Lennard_Jones
 
-| 算子 | 说明 | 状态 |
-|------|------|------|
-| `pinn` | PINN 物理信息神经网络推理 | ✅ Ascend C |
-| `fno` | FNO 傅里叶神经网络算子推理 | ✅ Ascend C |
-| `deeponet` | DeepONet 深度算子网络推理 | ✅ Ascend C |
+# 4. 编译并跑 ctest（需要 CANN；GTest 缺失时自动跳过 UT）
+bash build.sh --ops=Lennard_Jones,pinn --test
 
-### 预测优化 — PID 整定全流程（PIDModelFit）
+# 5. Python 参考实现测试（无需 NPU）
+bash build.sh --python prediction/SmallData
 
-12 个算子按 PID 整定 6 个阶段组织，覆盖从模型辨识到性能评估的完整链路：
+# 6. 按文件清单增量跑参考测试
+bash build.sh --reference-test prediction/ProcessControl/ -f pr_filelist.txt -j8
+```
 
-| 阶段 | 算子 | 说明 | 状态 |
-|------|------|------|------|
-| **① 模型辨识** | `pid_fopdt_basis_gemm_fit` | FOPDT 模型辨识（basis-GEMM 加速） | ✅ Ascend C |
-| | `pid_ipdt_basis_gemm_fit` | IPDT 模型辨识（basis-GEMM 加速） | ✅ Ascend C |
-| | `pid_sopdt_basis_gemm_fit` | SOPDT 模型辨识（basis-GEMM 加速） | ✅ Ascend C |
-| **② 模型质量诊断** | `pid_residual_diagnostics` | 残差诊断 | ✅ Ascend C |
-| | `pid_windowed_residual_diagnostics` | 窗口残差诊断 | ✅ Ascend C |
-| **③ PID 参数生成** | `pid_tuning_rule_batch` | 批量整定规则（Ziegler-Nichols / IMC / Cohen-Coon） | ✅ Ascend C |
-| **④ 候选闭环仿真/评分/选优** | `pid_fopdt_batch_rollout_score` | FOPDT 候选闭环仿真 + 评分 + best 选择 | ✅ Ascend C |
-| | `pid_ipdt_batch_rollout_score` | IPDT 候选闭环仿真 + 评分 + best 选择 | ✅ Ascend C |
-| | `pid_sopdt_batch_rollout_score` | SOPDT 候选闭环仿真 + 评分 + best 选择 | ✅ Ascend C |
-| **⑤ 候选响应特征提取** | `pid_step_response_features` | 阶跃响应特征提取（上升时间/超调/稳态误差等） | ✅ Ascend C |
-| **⑥ 控制性能与过程能力评估** | `pid_control_performance_metrics` | 控制性能指标（IAE/ISE/ITAE 等） | ✅ Ascend C |
-| | `pid_process_capability_metrics` | 过程能力指数（Cp/Cpk 等） | ✅ Ascend C |
+更多参数：`bash build.sh --help`；增量与 CI 用法见 [docs/zh/QUICKSTART.md](docs/zh/QUICKSTART.md)。
 
-> PIDModelFit 提供 `common/`（CPU/NumPy reference）、`docs/`（设计文档与测试报告）、`e2e/`（全链路验证驱动）三个支撑模块。
+## 📖 学习教程
 
-### 预测优化 — 时序预测模型（TimeSeriesForecast）
+| 文档 | 说明 |
+|---|---|
+| [快速入门](docs/zh/QUICKSTART.md) | 环境、构建、测试与增量门禁 |
+| [算子清单](docs/zh/op_list.md) | 61 个算子的逐项说明与统计口径 |
+| [目录结构](docs/zh/appendix/dir_structure.md) | 每个目录的职责与放置规则 |
+| [贡献模板](template/) | 算法说明、API、测试架构与算子骨架模板 |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | 目录契约、编码规范、PR 要求 |
+| [AGENTS.md](AGENTS.md) | 面向 AI Agent 的可执行约束 |
 
-13 个算子面向时序预测模型的核心子图，将递归扫描、lag 聚合、LSH 分桶与框架不支持路径下沉为 NPU kernel，减少 kernel launch 与中间 Tensor 物化开销：
+## 🤝 贡献
 
-| 类别 | 算子 | 服务模型 | 说明 | 状态 |
-|------|------|----------|------|------|
-| **SSM 选择性扫描** | `selective_scan_1d` | Mamba / SSM | 时间维选择性扫描融合 | ✅ Ascend C |
-| | `s6scan_fused` | S6 / Mamba-style SSM | S6 扫描 + softplus + 累积融合 | ✅ Ascend C |
-| **lag 聚合融合** | `autocorr_fused_aggregate` | Autoformer | 自相关筛选 + lag 权重 + 时移聚合 | ✅ Ascend C |
-| **不支持路径替换** | `batch_spd_inv_fp32` | Koopa / DMD | 批量 SPD 矩阵求逆，替换 `torch.linalg.lstsq` CPU fallback | ✅ Ascend C |
-| | `tirex_slstm_cell` | TiRex / xLSTM | sLSTM 门控 + 稳定化 + 状态更新融合 | ✅ Ascend C |
-| **连续时间 RNN 扫描** | `cfc_scan_fused` | CfC | CfC 递归扫描融合 | ✅ Ascend C |
-| | `cornn_scan_fused` | coRNN | coRNN 递归扫描融合 | ✅ Ascend C |
-| | `sru_scan_fused` | SRU | SRU 递归扫描融合 | ✅ Ascend C |
-| | `unicornn_scan_fused` | UnICORNN | UnICORNN 递归扫描融合 | ✅ Ascend C |
-| | `ltc_scan_fused` | LTC | LTC 递归扫描融合 | ✅ Ascend C |
-| **LSH 分桶与推理聚合** | `reformer_lsh_bucket_sort` | Reformer | LSH 分桶排序 + sticker/inverse 构造融合 | ✅ Ascend C |
-| | `reformer_lsh_qkv_gather` | Reformer | 复用 LSH index 整理 query/key 与 value | ✅ Ascend C |
-| | `autoformer_inference_aggregate_fused` | Autoformer | 均值归约 + TopK + softmax + 循环移位加权聚合融合 | ✅ Ascend C |
+Fork → 开发测试 → 提交 PR → SIG Review → 合入。提交前请至少运行：
 
-> TimeSeriesForecast 提供 `docs/`（文档与 TorchAir 性能报告）和 `deliverables/`（评审与交付材料）两个支撑目录。
+```bash
+git diff --check
+pre-commit run --all-files
+python -m pytest tests/ut -q
+```
 
-### 预测优化 — 非时序预测模型（NonTemporalPrediction）
+新增算子不需要修改 `build.sh` 或顶层 `CMakeLists.txt`：把算子目录放进 `cmake/variables.cmake` 登记的族目录即可被发现。
+目录命名、必备交付件与参考实现要求见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-26 个算子覆盖图学习、点云和三维几何、分子图几何三个方向，将 PyTorch Geometric 及点云网络参考实现中的稀疏图传播、注意力聚合、邻域查询或分子图多体几何计算下沉为单个 NPU kernel：
+## 📚 参考资源
 
-| 类别 | 算子 | 服务模型 | 说明 | 状态 |
-|------|------|----------|------|------|
-| **非时序图学习与预测** | `csr_gat_attention_aggregate_fused` | GAT | 稀疏注意力打分 + LeakyReLU + CSR 分段 softmax + 邻居加权聚合 | ✅ Ascend C |
-| | `csr_gatv2_dynamic_attention_aggregate_fused` | GATv2 | 动态注意力（先加后打分）+ CSR softmax + 聚合 | ✅ Ascend C |
-| | `csr_sage_mean_root_relu_fused` | GraphSAGE | 邻居均值 + root 分支 + ReLU 融合 | ✅ Ascend C |
-| | `csr_lightgcn_k2_weighted_sum_fused` | LightGCN | K=2 对称归一化两跳传播 + 层加权求和 | ✅ Ascend C |
-| | `csr_signed_cross_mean_pack_fused` | Signed GCN | 第二层正/负邻域交叉均值打包 | ✅ Ascend C |
-| | `csr_arma_stack_propagate_fused` | ARMA | K 路并行栈式加权传播 + root/bias + ReLU | ✅ Ascend C |
-| | `csr_appnp_propagate_fused` | APPNP | 定步数传播阶段乒乓 workspace 融合 | ✅ Ascend C |
-| | `csr_film_modulated_mean_fused` | FiLM | 逐边特征线性调制 + 均值聚合 | ✅ Ascend C |
-| | `csr_hypergraph_attention_two_stage_propagate_fused` | Hypergraph | 节点-超边-节点两阶段注意力传播 | ✅ Ascend C |
-| | `csr_chebyshev_basis_k3_fused` | ChebNet | `K=3` 切比雪夫基 `T0/T1/T2` 生成 | ✅ Ascend C |
-| | `csr_gcn2_residual_propagate_fused` | GCNII | 传播 + 初始残差融合 | ✅ Ascend C |
-| | `csr_tagcn_basis_k3_fused` | TAGCN | `K=3` 四阶特征基逐级传播 | ✅ Ascend C |
-| | `csr_transformer_dot_attention_aggregate_fused` | Graph Transformer | 缩放点积多头注意力 + CSR softmax + 聚合 | ✅ Ascend C |
-| | `attentional_aggregation_fused` | AttentionalAggregation | 图级稳定 softmax 注意力池化（per-graph max + 指数归一化 + 加权归约） | ✅ Ascend C |
-| | `csr_agnn_cosine_attention_aggregate_fused` | AGNN | 余弦打分 + CSR 分段 softmax + 邻居加权聚合 | ✅ Ascend C |
-| | `csr_genconv_softmax_aggregate_fused` | GENConv | `ReLU(x_j)+1e-7` + 温度 softmax + 邻居加权归约 | ✅ Ascend C |
-| | `csr_supergat_dot_attention_aggregate_fused` | SuperGAT-SD | 缩放点积打分 + LeakyReLU + 目标分段 softmax + 邻居聚合 | ✅ Ascend C |
-| | `edgepool_sorted_rank_contract_fused` | EdgePooling | 已排序边评分的贪心端点匹配 + 簇收缩/单点簇 ID 与计数 | ✅ Ascend C |
-| | `sort_aggregation_topk_fused` | SortAggregation | 按末维特征稳定排序 + 取前 `k` 行 + 零填充 + 展平 | ✅ Ascend C |
-| **点云和三维几何** | `farthest_point_sampling_fused` | PointNet++ | 点云最远点采样（FPS）中心点选取 | ✅ Ascend C |
-| | `point_ball_query_fused` | PointNet++ | 球半径邻域查询 + 距离过滤 + 有效计数 | ✅ Ascend C |
-| | `csr_point_transformer_attention_aggregate_fused` | Point Transformer | 位置注意力打分 + 分段 softmax + 位置增量聚合 | ✅ Ascend C |
-| | `ppf_point_pair_features_fused` | PPFNet | 点对特征（距离 + 三个法向角）计算 | ✅ Ascend C |
-| **分子图几何** | `dimenet_triplet_enumerate_fused` | DimeNet / DimeNet++ | 方向性 `k→j→i` 三元组枚举 | ✅ Ascend C |
-| | `dimenet_triplet_angle_fused` | DimeNet / DimeNet++ | 三元组角度 `atan2` 几何计算 | ✅ Ascend C |
-| | `gemnet_quadruplet_geometry_fused` | GemNet | 官方 GemNet 四元组几何（角度与投影扭转角） | ✅ Ascend C |
+| 类别 | 仓库 |
+|---|---|
+| 基础框架 | [opbase](https://gitcode.com/cann/opbase)（算子开发基础库） |
+| 算子库 | [ops-math](https://gitcode.com/cann/ops-math)、[ops-nn](https://gitcode.com/cann/ops-nn)、[ops-blas](https://gitcode.com/cann/ops-blas)、[ops-sparse](https://gitcode.com/cann/ops-sparse) |
+| 开发与测试 | [cann-samples](https://gitcode.com/cann/cann-samples)、[ops-test-kit](https://gitcode.com/cann/ops-test-kit)、[oam-tools](https://gitcode.com/cann/oam-tools) |
+| 迁移与生成 | [pypto](https://gitcode.com/cann/pypto)、[cann-learning-hub](https://gitcode.com/cann/cann-learning-hub) |
 
-> NonTemporalPrediction 目录暂无汇总 README；各算子目录下均含独立 `README.md`/`docs/`/`tests/`。
+## 👥 维护团队
 
-## 贡献模板
+Maintainer：黄剑兴、张玉橙、周吉彬、高菲
 
-为降低新算子贡献门槛，仓库提供了标准模板，位于 [template/](template/) 目录：
+Committer：刘非、刘海东、高梓博、马博文、刘达林、赵俊、郑柳琪、张强豪、李姝漫
 
-| 模板 | 说明 |
-|------|------|
-| [algorithm.md](template/algorithm.md) | 算法说明文档模板 —— 涵盖算法原理、NPU 实现、精度与性能分析 |
-| [references.md](template/references.md) | 参考文献模板 —— 分类整理基础理论、硬件实现、领域应用和第三方实现 |
-| [operator_example.md](template/operator_example.md) | 算子示例模板 —— 目录结构、Host/Kernel 代码框架、构建配置 |
-| [test_architecture.md](template/test_architecture.md) | 测试架构模板 —— C++ UT、Python 集成测试、性能基准测试规范 |
+## 📄 许可证
 
-## 维护团队
-
-### Maintainer列表
-- 黄剑兴  huangjianxing4@huawei.com
-- 张玉橙 zhangyucheng23@huawei.com
-- 周吉彬 zhoujibin@dicp.ac.cn
-- 高菲 gaofei06@petrochina.com.cn
-
-### Committer列表
-- 刘非 liuf23357@gmail.com
-- 刘海东 aliutec@163.com
-- 高梓博 gaozibo@petrochina.com.cn
-- 马博文  iambowen.m@qq.com
-- 刘达林 liudalin@huawei.com
-- 赵俊 roomdream@qq.com
-- 郑柳琪 2557692481@qq.com
-- 张强豪 1964035193@qq.com
-- 李姝漫 1404537011@qq.com
-
-## 参考资源
-
-为帮助开发者学习 Ascend C 算子开发，建议参考以下 CANN 官方仓库（可 clone 到本地 `Reference/` 目录，该目录不参与版本管理）：
-
-### 基础数学库
-
-| 仓库 | 说明 |
-|------|------|
-| [opbase](https://atomgit.com/cann/opbase) | Ascend C 算子开发基础库，提供通用宏、接口与工具 |
-| [ops-math](https://atomgit.com/cann/ops-math) | 数学运算算子库（Element-wise、Reduction 等） |
-| [ops-blas](https://atomgit.com/cann/ops-blas) | BLAS 线性代数算子库（MatMul、Gemm 等） |
-| [ops-fft](https://atomgit.com/cann/ops-fft) | 傅里叶变换算子库 |
-| [ops-sparse](https://atomgit.com/cann/ops-sparse) | 稀疏计算算子库 |
-| [ops-tensor](https://atomgit.com/cann/ops-tensor) | 张量操作算子库（Reshape、Slice、Concat 等） |
-| [ops-nn](https://atomgit.com/cann/ops-nn) | 神经网络算子库（Conv、Pool、Activation 等） |
-| [ops-rand](https://atomgit.com/cann/ops-rand) | 随机数生成算子库 |
-
-### 开发标准与调试工具
-
-| 仓库 | 说明 |
-|------|------|
-| [cann-learning-hub](https://atomgit.com/cann/cann-learning-hub) | CANN 学习中心，含教程、示例与最佳实践 |
-| [oam-tools](https://atomgit.com/cann/oam-tools) | 算子开发调试与性能分析工具集 |
-| [ops-test-kit](https://atomgit.com/cann/ops-test-kit) | 算子测试套件，用例生成与结果分析 |
-| [pypto](https://atomgit.com/cann/pypto) | PyTorch 算子自动迁移工具（PyTorch → Ascend C） |
-
-### AI Kernel 生成参考
-
-| 仓库 | 说明 |
-|------|------|
-| [cann-bench](https://atomgit.com/cann/cann-bench) | CANN 性能基准测试与 Benchmark |
-| [cannbot-skills](https://atomgit.com/cann/cannbot-skills) | CANN 开发辅助 Skills 与自动化工具 |
-| [cann-samples](https://atomgit.com/cann/cann-samples) | Ascend C 算子开发完整示例集 |
-
-### 相关参考库
-
-| 仓库 | 说明 |
-|------|------|
-| [cann-ops-competitions](https://atomgit.com/cann/cann-ops-competitions) | CANN 算子竞赛参赛作品集 |
-| [asnumpy](https://atomgit.com/cann/asnumpy) | NumPy 兼容 API，方便从 NumPy 迁移到 Ascend |
-| [ascend-boost-comm](https://atomgit.com/cann/ascend-boost-comm) | Ascend Boost 通信库 |
-
-> 可通过 `git clone` 将上述仓库下载至本地 `Reference/` 目录作为学习参考。该目录已加入 `.gitignore`，不会纳入本仓库版本管理。
-
-## 环境要求
-
-- CANN ≥ 7.0
-- Atlas A2/A3 训练/推理卡
-- CMake ≥ 3.16
-
-具体编译、测试命令因模块而异，请参见各算子目录下的 README 或 [CONTRIBUTING.md](CONTRIBUTING.md) 的构建测试说明。
-
-## 许可证
-
-本仓库以生态繁荣为目标，选取 [Apache 2.0](https://www.apache.org/licenses/) 许可证。
-
-## 算子贡献指南
-
-详情 [CONTRIBUTING.md](CONTRIBUTING.md)
-
-### 提交流程：
-
-Fork 仓库 → 开发测试 → 提交 PR → SIG Review → 合入
+[Apache License 2.0](LICENSE)。安全声明见 [SECURITY.md](SECURITY.md)，变更记录见 [CHANGELOG.md](CHANGELOG.md)。
