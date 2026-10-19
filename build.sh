@@ -236,14 +236,16 @@ resolve_operators_from_filelist() {
     printf '%s\n' "${result[@]}"
 }
 
-# 检查文件列表是否只有 .md 或 tests/ 文件
-should_skip_build() {
+# 纯文档变更判定：filelist 中非空行全部以 .md 结尾
+# 注意：tests/ 变更不在此列——用例改动必须走正常增量编译路径（build_single 重编后再跑 ctest），
+# 否则会出现"用例改了却没重编、测的是旧产物"的漏测。
+should_skip_docs_only() {
     local filelist="$1"
-    local non_skip_count
+    local non_doc_count
     # 兼容 CRLF；grep -c 计数为 0 时退出码为 1，用 || true 兜底
-    non_skip_count=$(tr -d '\r' < "$filelist" 2>/dev/null | grep -vE '(\.md$|^tests/|/tests/)' | grep -cv '^$' || true)
-    non_skip_count=${non_skip_count:-0}
-    [ "$non_skip_count" -eq 0 ]
+    non_doc_count=$(tr -d '\r' < "$filelist" 2>/dev/null | grep -vE '^[[:space:]]*$' | grep -cvE '\.md$' || true)
+    non_doc_count=${non_doc_count:-0}
+    [ "$non_doc_count" -eq 0 ]
 }
 
 # 探测 GTest 是否可用（CI 镜像未必预装，缺失时跳过 UT 而非报错）
@@ -311,7 +313,12 @@ run_python_test() {
     fi
 
     echo "[PYTEST] $op"
-    source "${ASCEND_TOOLKIT_HOME}/set_env.sh" 2>/dev/null || true
+    # source 一个不存在的文件在非交互 shell（含 bash 3.2）里是致命错误，`|| true` 也拦不住：
+    # ASCEND_TOOLKIT_HOME 未设置时会展开成 /set_env.sh，脚本会静默 exit 1 且不打印任何输出。
+    # 因此必须先用 -f 守卫，保证缺 CANN 环境时只是跳过，而不是让门禁"没有结论"。
+    if [ -n "${ASCEND_TOOLKIT_HOME:-}" ] && [ -f "${ASCEND_TOOLKIT_HOME}/set_env.sh" ]; then
+        source "${ASCEND_TOOLKIT_HOME}/set_env.sh" 2>/dev/null || true
+    fi
     PYTHON_BIN="${PYTHON_BIN:-python3}"
     "$PYTHON_BIN" -m pip install pytest numpy 2>/dev/null || true
     "$PYTHON_BIN" - <<'PY'
@@ -321,6 +328,16 @@ missing = [name for name in required if importlib.util.find_spec(name) is None]
 if missing:
     subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
 PY
+
+    # DAO 等 Python 算子依赖 pypto（tile 框架）。仅当算子源码确实引用时按需安装，
+    # 避免给不需要的算子（如 GPR）引入额外依赖。
+    if grep -RqsE '^[[:space:]]*(import pypto|from pypto)' "$op" --include='*.py'; then
+        "$PYTHON_BIN" - <<'PY'
+import importlib.util, subprocess, sys
+if importlib.util.find_spec("pypto") is None:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pypto"])
+PY
+    fi
 
     if [ -f "${op}/test_ops.py" ]; then
         "$PYTHON_BIN" -X faulthandler -m pytest "${op}/test_ops.py" -v --tb=short
@@ -335,7 +352,7 @@ PY
     return $?
 }
 
-# 参考测试（stage3）：遍历 CMake 算子的 tests/ 目录运行 pytest
+# 参考测试：遍历 CMake 算子的 tests/ 目录运行 pytest（与构建同 stage 并行，不再前置卡构建）
 run_reference_tests() {
     local filelist="$1"
     local filter_prefix="$2"  # 如 "prediction/ProcessControl/" 只测该前缀下的算子
@@ -343,6 +360,7 @@ run_reference_tests() {
     local overall_rc=0
     local ran_test=false
     local common_changed=false
+    local -a missing_ref=()
 
     # 检查 COMMON_DIRS 是否有变更
     if [ -n "$common_dirs_str" ] && [ -n "$filelist" ] && [ -f "$filelist" ]; then
@@ -361,7 +379,12 @@ run_reference_tests() {
         done
     fi
 
-    source "${ASCEND_TOOLKIT_HOME}/set_env.sh" 2>/dev/null || true
+    # source 一个不存在的文件在非交互 shell（含 bash 3.2）里是致命错误，`|| true` 也拦不住：
+    # ASCEND_TOOLKIT_HOME 未设置时会展开成 /set_env.sh，脚本会静默 exit 1 且不打印任何输出。
+    # 因此必须先用 -f 守卫，保证缺 CANN 环境时只是跳过，而不是让门禁"没有结论"。
+    if [ -n "${ASCEND_TOOLKIT_HOME:-}" ] && [ -f "${ASCEND_TOOLKIT_HOME}/set_env.sh" ]; then
+        source "${ASCEND_TOOLKIT_HOME}/set_env.sh" 2>/dev/null || true
+    fi
     PYTHON_BIN="${PYTHON_BIN:-python3}"
     "$PYTHON_BIN" -m pip install pytest numpy 2>/dev/null || true
     "$PYTHON_BIN" - <<'PY'
@@ -385,6 +408,14 @@ PY
                 continue
             fi
         fi
+        # 交付契约校验：有 tests/ 的算子必须提供 reference/reference.py（唯一正确性基准）。
+        # 缺失时先聚合报告，避免逐个算子抛裸的 FileNotFoundError，也避免"空跑假绿"。
+        if [ ! -f "$op/reference/reference.py" ] && [ ! -f "$op/reference/__init__.py" ]; then
+            echo "[REF-MISSING] $op — tests/ 存在但缺少 reference/reference.py"
+            missing_ref+=("$op")
+            overall_rc=1
+            continue
+        fi
         ran_test=true
         echo "=== Reference test: $op ==="
         if ! ( cd "$op" && "$PYTHON_BIN" -X faulthandler -m pytest tests -v --tb=short ); then
@@ -392,7 +423,13 @@ PY
         fi
     done
 
-    if [ "$ran_test" = false ]; then
+    if [ ${#missing_ref[@]} -gt 0 ]; then
+        echo "----------------------------------------------------------------"
+        echo "[REF-MISSING] ${#missing_ref[@]} operator(s) missing reference/:"
+        printf '  %s\n' "${missing_ref[@]}"
+    fi
+
+    if [ "$ran_test" = false ] && [ ${#missing_ref[@]} -eq 0 ]; then
         echo "No operator files changed; reference tests are skipped."
     fi
     return $overall_rc
@@ -481,18 +518,14 @@ if [ -n "$FILELIST" ]; then
 
     echo "[INFO] Reading file list: $FILELIST"
 
-    # 跳过检查：仅 .md 或 tests/ 文件时跳过编译；但 --test 模式下仍跑 ctest
-    if [ "$SKIP_CHECK" = false ]; then
-        if should_skip_build "$FILELIST"; then
-            if [ "$RUN_TEST" = true ]; then
-                echo "[INFO] Only .md/tests files changed; build skipped, running tests only"
-            else
-                echo "[SKIP] File list contains only .md or tests/ files, skip build"
-                mkdir -p build_out 2>/dev/null || true
-                touch build_out/skip_build.run 2>/dev/null || true
-                exit 0
-            fi
-        fi
+    # 跳过检查：纯 .md 文档变更既无编译产物也无可测算子，直接短路退出（不区分是否 --test）。
+    # 此前 --test 分支只打印日志不退出，把文档 PR 放大成一次完整构建，
+    # 叠加算子侧 CMake 环境探测失败后，导致纯文档 PR 门禁变红。
+    if [ "$SKIP_CHECK" = false ] && should_skip_docs_only "$FILELIST"; then
+        echo "[SKIP] File list contains only .md files, skip build and test"
+        mkdir -p build_out 2>/dev/null || true
+        touch build_out/skip_build.run 2>/dev/null || true
+        exit 0
     fi
 
     # 从文件列表提取受影响的算子（含 COMMON_DIRS 检查）
