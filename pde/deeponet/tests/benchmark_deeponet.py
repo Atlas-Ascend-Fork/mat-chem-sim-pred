@@ -12,10 +12,12 @@
 import numpy as np
 import time
 
+
 def deeponet_numpy(branch_in, trunk_in, Wb, bb, Wt, bt):
     branch_code = np.tanh(branch_in @ Wb.T + bb)
     trunk_code = np.tanh(trunk_in @ Wt.T + bt)
     return branch_code @ trunk_code.T
+
 
 def run_benchmark():
     configs = [(1, 10, 100), (8, 50, 500), (32, 100, 1000), (128, 200, 2000)]
@@ -38,7 +40,8 @@ def run_benchmark():
         for _ in range(100):
             _ = deeponet_numpy(branch_in, trunk_in, Wb, bb, Wt, bt)
         elapsed = (time.perf_counter() - start) / 100
-        print(f"{batch:>6} {branch_dim:>8} {query:>8} {elapsed*1000:>10.3f}")
+        print(f"{batch:>6} {branch_dim:>8} {query:>8} {elapsed * 1000:>10.3f}")
+
 
 if __name__ == "__main__":
     run_benchmark()

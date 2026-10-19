@@ -89,10 +89,17 @@ def frequency_stability_scan(
     ki = np.asarray(ki, dtype=np.float32)
     kd = np.asarray(kd, dtype=np.float32)
     if plant_real.ndim != 2 or plant_imag.shape != plant_real.shape:
-        raise ValueError("plant_real and plant_imag must have shape [batch, freq_count]")
+        raise ValueError(
+            "plant_real and plant_imag must have shape [batch, freq_count]"
+        )
     if omega.ndim != 1 or omega.shape[0] != plant_real.shape[1]:
         raise ValueError("omega must have shape [freq_count]")
-    if kp.ndim != 2 or ki.shape != kp.shape or kd.shape != kp.shape or kp.shape[0] != plant_real.shape[0]:
+    if (
+        kp.ndim != 2
+        or ki.shape != kp.shape
+        or kd.shape != kp.shape
+        or kp.shape[0] != plant_real.shape[0]
+    ):
         raise ValueError("kp, ki and kd must have shape [batch, candidates]")
 
     batch, freq_count = plant_real.shape
@@ -114,7 +121,9 @@ def frequency_stability_scan(
             sensitivity = 1.0 / np.maximum(return_abs, eps)
             cross_idx = int(np.argmin(np.abs(loop_abs - 1.0)))
             high_start = max(freq_count // 2, 0)
-            noise_gain = np.sqrt(controller_real * controller_real + controller_imag[high_start:] ** 2)
+            noise_gain = np.sqrt(
+                controller_real * controller_real + controller_imag[high_start:] ** 2
+            )
             min_return = float(np.min(return_abs))
             max_sensitivity = float(np.max(sensitivity))
             metrics[b, c, 0] = min_return
@@ -125,7 +134,10 @@ def frequency_stability_scan(
             metrics[b, c, 5] = float(np.max(noise_gain))
             metrics[b, c, 6] = float(np.mean(sensitivity))
             metrics[b, c, 7] = (
-                1.0 if min_return >= stability_margin_threshold and max_sensitivity <= sensitivity_limit else 0.0
+                1.0
+                if min_return >= stability_margin_threshold
+                and max_sensitivity <= sensitivity_limit
+                else 0.0
             )
     return FrequencyStabilityResult(metrics=metrics)
 

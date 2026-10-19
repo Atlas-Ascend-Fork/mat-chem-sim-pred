@@ -12,13 +12,19 @@
 import numpy as np
 import pytest
 
+
 def pinn_fc_numpy(inputs, weights_list, bias_list, activation="tanh"):
-    act = {"tanh": np.tanh, "sigmoid": lambda x: 1/(1+np.exp(-x)), "relu": lambda x: np.maximum(0, x)}
+    act = {
+        "tanh": np.tanh,
+        "sigmoid": lambda x: 1 / (1 + np.exp(-x)),
+        "relu": lambda x: np.maximum(0, x),
+    }
     f = act[activation]
     h = inputs
     for W, b in zip(weights_list, bias_list):
         h = f(h @ W.T + b)
     return h
+
 
 def pinn_grad_numpy(inputs, weights_list, bias_list, activation="tanh"):
     batch_size, input_dim = inputs.shape
@@ -39,11 +45,18 @@ def pinn_grad_numpy(inputs, weights_list, bias_list, activation="tanh"):
         activations.append(h)
 
     if activation == "tanh":
-        def act_deriv(x): return 1 - np.tanh(x)**2
+
+        def act_deriv(x):
+            return 1 - np.tanh(x) ** 2
     elif activation == "sigmoid":
-        def act_deriv(x): s = 1/(1+np.exp(-x)); return s*(1-s)
+
+        def act_deriv(x):
+            s = 1 / (1 + np.exp(-x))
+            return s * (1 - s)
     else:
-        def act_deriv(x): return (x > 0).astype(float)
+
+        def act_deriv(x):
+            return (x > 0).astype(float)
 
     jacobians = np.zeros((batch_size, output_dim, input_dim))
     for b in range(batch_size):
@@ -58,6 +71,7 @@ def pinn_grad_numpy(inputs, weights_list, bias_list, activation="tanh"):
                 else:
                     jacobians[b, o] = delta @ weights_list[l]
     return jacobians
+
 
 class TestPinnFC:
     def test_forward_small(self):

@@ -30,11 +30,19 @@ from pid_tuning_rule_batch_reference import (
 
 def test_tuning_rule_batch_matches_loop_reference():
     case = make_tuning_rule_batch_case(batch=64)
-    vectorized = tuning_rule_batch(case.process_gain, case.time_constant, case.dead_time, case.lambda_value)
-    loop = tuning_rule_batch_cpu_loop(case.process_gain, case.time_constant, case.dead_time, case.lambda_value)
+    vectorized = tuning_rule_batch(
+        case.process_gain, case.time_constant, case.dead_time, case.lambda_value
+    )
+    loop = tuning_rule_batch_cpu_loop(
+        case.process_gain, case.time_constant, case.dead_time, case.lambda_value
+    )
 
-    np.testing.assert_allclose(vectorized.pid_params, loop.pid_params, rtol=1.0e-6, atol=1.0e-6)
-    np.testing.assert_allclose(vectorized.diagnostics, loop.diagnostics, rtol=1.0e-6, atol=1.0e-6)
+    np.testing.assert_allclose(
+        vectorized.pid_params, loop.pid_params, rtol=1.0e-6, atol=1.0e-6
+    )
+    np.testing.assert_allclose(
+        vectorized.diagnostics, loop.diagnostics, rtol=1.0e-6, atol=1.0e-6
+    )
 
 
 def test_tuning_rule_batch_known_case():
@@ -46,15 +54,23 @@ def test_tuning_rule_batch_known_case():
     rule = {name: i for i, name in enumerate(RULE_NAMES)}
     param = {name: i for i, name in enumerate(PARAM_NAMES)}
 
-    assert np.isclose(result.pid_params[0, rule["ziegler_nichols"], param["kp"]], 3.0, atol=1.0e-6)
-    assert np.isclose(result.pid_params[0, rule["ziegler_nichols"], param["ki"]], 0.75, atol=1.0e-6)
-    assert np.isclose(result.pid_params[0, rule["ziegler_nichols"], param["kd"]], 3.0, atol=1.0e-6)
+    assert np.isclose(
+        result.pid_params[0, rule["ziegler_nichols"], param["kp"]], 3.0, atol=1.0e-6
+    )
+    assert np.isclose(
+        result.pid_params[0, rule["ziegler_nichols"], param["ki"]], 0.75, atol=1.0e-6
+    )
+    assert np.isclose(
+        result.pid_params[0, rule["ziegler_nichols"], param["kd"]], 3.0, atol=1.0e-6
+    )
     assert result.diagnostics[0, rule["imc"], DIAGNOSTIC_NAMES.index("valid")] == 1.0
 
 
 def test_tuning_rule_batch_invalid_inputs_are_filtered():
     case = make_tuning_rule_batch_case(batch=8)
-    result = tuning_rule_batch(case.process_gain, case.time_constant, case.dead_time, case.lambda_value)
+    result = tuning_rule_batch(
+        case.process_gain, case.time_constant, case.dead_time, case.lambda_value
+    )
     valid_idx = DIAGNOSTIC_NAMES.index("valid")
 
     assert np.all(result.diagnostics[:4, :, valid_idx] == 0.0)
@@ -64,7 +80,9 @@ def test_tuning_rule_batch_invalid_inputs_are_filtered():
 
 def test_tuning_rule_batch_shapes_are_finite():
     case = make_tuning_rule_batch_case(batch=32)
-    result = tuning_rule_batch(case.process_gain, case.time_constant, case.dead_time, case.lambda_value)
+    result = tuning_rule_batch(
+        case.process_gain, case.time_constant, case.dead_time, case.lambda_value
+    )
 
     assert result.pid_params.shape == (32, len(RULE_NAMES), len(PARAM_NAMES))
     assert result.diagnostics.shape == (32, len(RULE_NAMES), len(DIAGNOSTIC_NAMES))

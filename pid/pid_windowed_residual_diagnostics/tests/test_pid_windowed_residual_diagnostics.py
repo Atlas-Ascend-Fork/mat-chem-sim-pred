@@ -29,16 +29,26 @@ from pid_windowed_residual_diagnostics_reference import (
 
 def test_windowed_residual_diagnostics_matches_cpu_loop():
     case = make_windowed_residual_diagnostics_case(batch=4, n=384)
-    vectorized = windowed_residual_diagnostics(case.actual, case.predicted, window_size=96, stride=48, max_lag=8)
-    loop = windowed_residual_diagnostics_cpu_loop(case.actual, case.predicted, window_size=96, stride=48, max_lag=8)
+    vectorized = windowed_residual_diagnostics(
+        case.actual, case.predicted, window_size=96, stride=48, max_lag=8
+    )
+    loop = windowed_residual_diagnostics_cpu_loop(
+        case.actual, case.predicted, window_size=96, stride=48, max_lag=8
+    )
 
-    np.testing.assert_allclose(vectorized.metrics, loop.metrics, rtol=3.0e-5, atol=3.0e-4)
-    np.testing.assert_allclose(vectorized.autocorr, loop.autocorr, rtol=3.0e-5, atol=3.0e-4)
+    np.testing.assert_allclose(
+        vectorized.metrics, loop.metrics, rtol=3.0e-5, atol=3.0e-4
+    )
+    np.testing.assert_allclose(
+        vectorized.autocorr, loop.autocorr, rtol=3.0e-5, atol=3.0e-4
+    )
 
 
 def test_windowed_residual_diagnostics_shapes_and_sanity():
     case = make_windowed_residual_diagnostics_case(batch=8, n=512)
-    result = windowed_residual_diagnostics(case.actual, case.predicted, window_size=128, stride=64, max_lag=12)
+    result = windowed_residual_diagnostics(
+        case.actual, case.predicted, window_size=128, stride=64, max_lag=12
+    )
     idx = {name: i for i, name in enumerate(METRIC_NAMES)}
 
     assert result.metrics.shape == (8, 7, len(METRIC_NAMES))
@@ -53,7 +63,9 @@ def test_windowed_residual_diagnostics_shapes_and_sanity():
 def test_windowed_residual_diagnostics_known_window_count():
     actual = np.arange(16, dtype=np.float32)[None, :]
     predicted = actual.copy()
-    result = windowed_residual_diagnostics(actual, predicted, window_size=4, stride=3, max_lag=2)
+    result = windowed_residual_diagnostics(
+        actual, predicted, window_size=4, stride=3, max_lag=2
+    )
 
     assert result.metrics.shape == (1, 5, len(METRIC_NAMES))
     assert result.autocorr.shape == (1, 5, 2)
@@ -65,7 +77,9 @@ def test_windowed_residual_diagnostics_known_window_count():
     ("window_size", "stride", "max_lag"),
     [(1, 1, 1), (16, 0, 1), (16, 1, 0), (1024, 1, 1)],
 )
-def test_windowed_residual_diagnostics_rejects_invalid_inputs(window_size, stride, max_lag):
+def test_windowed_residual_diagnostics_rejects_invalid_inputs(
+    window_size, stride, max_lag
+):
     case = make_windowed_residual_diagnostics_case(batch=2, n=64)
     with pytest.raises(ValueError):
         windowed_residual_diagnostics(

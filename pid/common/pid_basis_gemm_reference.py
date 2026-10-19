@@ -55,7 +55,9 @@ def response_value(
     return state[0]
 
 
-def make_basis_gemm_case(family: str, batch: int = 8, n: int = 256, candidates: int = 65) -> BasisGemmCase:
+def make_basis_gemm_case(
+    family: str, batch: int = 8, n: int = 256, candidates: int = 65
+) -> BasisGemmCase:
     family = family.upper()
     if family not in {"FOPDT", "IPDT", "SOPDT"}:
         raise ValueError("family must be FOPDT, IPDT, or SOPDT")
@@ -81,7 +83,14 @@ def make_basis_gemm_case(family: str, batch: int = 8, n: int = 256, candidates: 
         amplitude = 1.0 + 0.03 * float(b % 11)
         for i in range(n):
             value = response_value(
-                family, i, truth_delay, amplitude, truth_alpha1, truth_alpha2, inv_n, state
+                family,
+                i,
+                truth_delay,
+                amplitude,
+                truth_alpha1,
+                truth_alpha2,
+                inv_n,
+                state,
             )
             y_centered[b, i] = truth_k * value
             y_energy[b] += y_centered[b, i] * y_centered[b, i]
@@ -109,7 +118,11 @@ def make_basis_gemm_case(family: str, batch: int = 8, n: int = 256, candidates: 
             t1 = truth_t1
             t2 = truth_t2
             delay = truth_l
-        elif abs(t1 - truth_t1) < 1.0e-6 and abs(t2 - truth_t2) < 1.0e-6 and abs(delay - truth_l) < 1.0e-6:
+        elif (
+            abs(t1 - truth_t1) < 1.0e-6
+            and abs(t2 - truth_t2) < 1.0e-6
+            and abs(delay - truth_l) < 1.0e-6
+        ):
             delay += 1.0
 
         state = [0.0, 0.0]
@@ -117,14 +130,18 @@ def make_basis_gemm_case(family: str, batch: int = 8, n: int = 256, candidates: 
         alpha2 = float(np.exp(-dt / t2))
         candidate_delay = delay_steps(delay, dt)
         for i in range(n):
-            value = response_value(family, i, candidate_delay, 1.0, alpha1, alpha2, inv_n, state)
+            value = response_value(
+                family, i, candidate_delay, 1.0, alpha1, alpha2, inv_n, state
+            )
             basis_t[i, c] = value
             basis_norm[c] += value * value
 
     return BasisGemmCase(family, y_centered, basis_t, basis_norm, y_energy, truth_index)
 
 
-def reduce_best(dot: np.ndarray, basis_norm: np.ndarray, y_energy: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def reduce_best(
+    dot: np.ndarray, basis_norm: np.ndarray, y_energy: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     safe_norm = np.maximum(basis_norm[None, :], 1.0e-6)
     gain = dot / safe_norm
     sse = y_energy[:, None] - dot * dot / safe_norm
@@ -132,16 +149,24 @@ def reduce_best(dot: np.ndarray, basis_norm: np.ndarray, y_energy: np.ndarray) -
     sse = np.where(np.isfinite(sse), sse, np.finfo(np.float32).max)
     best_idx = np.argmin(sse, axis=1).astype(np.int32)
     row = np.arange(dot.shape[0])
-    return sse[row, best_idx].astype(np.float32), gain[row, best_idx].astype(np.float32), best_idx
+    return (
+        sse[row, best_idx].astype(np.float32),
+        gain[row, best_idx].astype(np.float32),
+        best_idx,
+    )
 
 
-def fit_reference(case: BasisGemmCase) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def fit_reference(
+    case: BasisGemmCase,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     dot = case.y_centered @ case.basis_t
     best_sse, best_k, best_idx = reduce_best(dot, case.basis_norm, case.y_energy)
     return dot.astype(np.float32), best_sse, best_k, best_idx
 
 
-def benchmark_reference(family: str, batch: int, n: int, candidates: int, iters: int = 20) -> dict[str, float]:
+def benchmark_reference(
+    family: str, batch: int, n: int, candidates: int, iters: int = 20
+) -> dict[str, float]:
     case = make_basis_gemm_case(family, batch=batch, n=n, candidates=candidates)
     fit_reference(case)
     start = time.perf_counter()
@@ -150,7 +175,9 @@ def benchmark_reference(family: str, batch: int, n: int, candidates: int, iters:
     elapsed_ms = (time.perf_counter() - start) * 1000.0 / iters
     _, best_sse, _, best_idx = fit_reference(case)
     _, _, best_k, _ = fit_reference(case)
-    expected_k = np.array([1.2 * (1.0 + 0.03 * float(i % 11)) for i in range(batch)], dtype=np.float32)
+    expected_k = np.array(
+        [1.2 * (1.0 + 0.03 * float(i % 11)) for i in range(batch)], dtype=np.float32
+    )
     return {
         "family": family.upper(),
         "batch": batch,
@@ -159,5 +186,7 @@ def benchmark_reference(family: str, batch: int, n: int, candidates: int, iters:
         "numpy_ms_avg": elapsed_ms,
         "max_abs_best_sse": float(np.max(np.abs(best_sse))),
         "max_gain_abs_err": float(np.max(np.abs(best_k - expected_k))),
-        "best_idx_valid_rate": float(np.mean((best_idx >= 0) & (best_idx < candidates))),
+        "best_idx_valid_rate": float(
+            np.mean((best_idx >= 0) & (best_idx < candidates))
+        ),
     }

@@ -34,7 +34,9 @@ def _time_ms(fn, iters: int) -> float:
     return best
 
 
-def benchmark_case(batch: int, n: int, window_size: int, stride: int, max_lag: int, iters: int = 5) -> str:
+def benchmark_case(
+    batch: int, n: int, window_size: int, stride: int, max_lag: int, iters: int = 5
+) -> str:
     case = make_windowed_residual_diagnostics_case(batch=batch, n=n)
     num_windows = 1 + (n - window_size) // stride
 

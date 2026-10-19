@@ -14,6 +14,7 @@ import numpy as np
 # 核函数基类
 # ============================================================================
 
+
 class Kernel(nn.Module):
     """Base class for GP kernels."""
 
@@ -27,6 +28,7 @@ class Kernel(nn.Module):
 # ============================================================================
 # RBF (Radial Basis Function) / 平方指数核
 # ============================================================================
+
 
 class RBFKernel(Kernel):
     """
@@ -55,16 +57,20 @@ class RBFKernel(Kernel):
         return self.variance * torch.exp(-0.5 * sq_dist)
 
 
-def rbf_kernel_np(x1: np.ndarray, x2: np.ndarray,
-                  length_scale: float = 1.0, variance: float = 1.0) -> np.ndarray:
+def rbf_kernel_np(
+    x1: np.ndarray, x2: np.ndarray, length_scale: float = 1.0, variance: float = 1.0
+) -> np.ndarray:
     """NumPy reference for RBF kernel."""
-    sq_dist = np.sum((x1[:, None] / length_scale - x2[None] / length_scale) ** 2, axis=-1)
+    sq_dist = np.sum(
+        (x1[:, None] / length_scale - x2[None] / length_scale) ** 2, axis=-1
+    )
     return variance * np.exp(-0.5 * sq_dist)
 
 
 # ============================================================================
 # Matern 核
 # ============================================================================
+
 
 class MaternKernel(Kernel):
     """
@@ -73,7 +79,9 @@ class MaternKernel(Kernel):
     k(x, y) = σ² * (2^{1-ν} / Γ(ν)) * (√(2ν) * d/l)^ν * K_ν(√(2ν) * d/l)
     """
 
-    def __init__(self, length_scale: float = 1.0, variance: float = 1.0, nu: float = 2.5):
+    def __init__(
+        self, length_scale: float = 1.0, variance: float = 1.0, nu: float = 2.5
+    ):
         super().__init__()
         self.nu = nu
         self.log_length_scale = nn.Parameter(torch.log(torch.tensor(length_scale)))
@@ -99,16 +107,22 @@ class MaternKernel(Kernel):
         elif self.nu == 2.5:
             sqrt5 = torch.tensor(2.23606797749979, device=dist.device)
             scaled = sqrt5 * dist
-            return self.variance * (1 + scaled + scaled ** 2 / 3) * torch.exp(-scaled)
+            return self.variance * (1 + scaled + scaled**2 / 3) * torch.exp(-scaled)
         else:
             raise ValueError(f"Unsupported nu: {self.nu}. Use 0.5, 1.5, or 2.5.")
 
 
-def matern_kernel_np(x1: np.ndarray, x2: np.ndarray,
-                     length_scale: float = 1.0, variance: float = 1.0,
-                     nu: float = 2.5) -> np.ndarray:
+def matern_kernel_np(
+    x1: np.ndarray,
+    x2: np.ndarray,
+    length_scale: float = 1.0,
+    variance: float = 1.0,
+    nu: float = 2.5,
+) -> np.ndarray:
     """NumPy reference for Matern kernel."""
-    dist = np.sqrt(np.sum((x1[:, None] / length_scale - x2[None] / length_scale) ** 2, axis=-1))
+    dist = np.sqrt(
+        np.sum((x1[:, None] / length_scale - x2[None] / length_scale) ** 2, axis=-1)
+    )
 
     if nu == 0.5:
         return variance * np.exp(-dist)
@@ -117,7 +131,7 @@ def matern_kernel_np(x1: np.ndarray, x2: np.ndarray,
         return variance * (1 + scaled) * np.exp(-scaled)
     elif nu == 2.5:
         scaled = 2.23606797749979 * dist
-        return variance * (1 + scaled + scaled ** 2 / 3) * np.exp(-scaled)
+        return variance * (1 + scaled + scaled**2 / 3) * np.exp(-scaled)
     else:
         raise ValueError(f"Unsupported nu: {nu}")
 
@@ -125,6 +139,7 @@ def matern_kernel_np(x1: np.ndarray, x2: np.ndarray,
 # ============================================================================
 # 周期核 (Periodic Kernel)
 # ============================================================================
+
 
 class PeriodicKernel(Kernel):
     """
@@ -134,7 +149,9 @@ class PeriodicKernel(Kernel):
     periodic kernels over input features.
     """
 
-    def __init__(self, length_scale: float = 1.0, variance: float = 1.0, period: float = 1.0):
+    def __init__(
+        self, length_scale: float = 1.0, variance: float = 1.0, period: float = 1.0
+    ):
         super().__init__()
         self.log_length_scale = nn.Parameter(torch.log(torch.tensor(length_scale)))
         self.log_variance = nn.Parameter(torch.log(torch.tensor(variance)))
@@ -155,12 +172,13 @@ class PeriodicKernel(Kernel):
     def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
         delta = x1[:, None, :] - x2[None, :, :]
         sin_term = torch.sin(torch.pi * delta / self.period).pow(2).sum(dim=-1)
-        return self.variance * torch.exp(-2 * sin_term / self.length_scale ** 2)
+        return self.variance * torch.exp(-2 * sin_term / self.length_scale**2)
 
 
 # ============================================================================
 # 核函数相加 (SumKernel)
 # ============================================================================
+
 
 class SumKernel(Kernel):
     """Sum of two kernels."""
@@ -177,6 +195,7 @@ class SumKernel(Kernel):
 # ============================================================================
 # 核函数相乘 (ProductKernel)
 # ============================================================================
+
 
 class ProductKernel(Kernel):
     """Product of two kernels."""

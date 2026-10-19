@@ -9,7 +9,9 @@ import numpy as np
 
 def _import_mamba2_ssd_ref():
     module_file = Path(__file__).resolve().parents[1] / "reference" / "reference.py"
-    module_spec = importlib.util.spec_from_file_location("mamba2_ssd_ref_mod", module_file)
+    module_spec = importlib.util.spec_from_file_location(
+        "mamba2_ssd_ref_mod", module_file
+    )
     if module_spec is None or module_spec.loader is None:
         raise RuntimeError(f"Unable to load Mamba2 reference module from {module_file}")
     loaded = importlib.util.module_from_spec(module_spec)

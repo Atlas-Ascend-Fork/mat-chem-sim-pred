@@ -15,12 +15,14 @@ import sys
 
 try:
     import torch
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
 
 try:
     import torch_npu
+
     HAS_NPU = True
 except ImportError:
     HAS_NPU = False
@@ -29,6 +31,7 @@ except ImportError:
 # ============================================================================
 # LJForceNPU - NPU 算子封装（测试用）
 # ============================================================================
+
 
 class LJForceNPU:
     """LJ Force NPU 算子封装"""
@@ -58,8 +61,10 @@ class LJForceNPU:
             raise RuntimeError("acl module not available")
 
     def _load_library(self):
-        ascend_home = os.environ.get('ASCEND_TOOLKIT_HOME', '/usr/local/Ascend/ascend-toolkit/latest')
-        acl_lib_path = os.path.join(ascend_home, 'lib64', 'libascendcl.so')
+        ascend_home = os.environ.get(
+            "ASCEND_TOOLKIT_HOME", "/usr/local/Ascend/ascend-toolkit/latest"
+        )
+        acl_lib_path = os.path.join(ascend_home, "lib64", "libascendcl.so")
         if os.path.exists(acl_lib_path):
             ctypes.CDLL(acl_lib_path, mode=ctypes.RTLD_GLOBAL)
 
@@ -120,7 +125,7 @@ class LJForceNPU:
             ctypes.c_float(cutoff),
             ctypes.c_void_p(workspace_dev),
             ctypes.c_uint64(workspace_size),
-            ctypes.c_void_p(self.stream)
+            ctypes.c_void_p(self.stream),
         )
 
         acl.rt.synchronize_stream(self.stream)
@@ -143,6 +148,7 @@ class LJForceNPU:
         if self.acl_initialized:
             try:
                 import acl
+
                 if self.stream:
                     acl.rt.destroy_stream(self.stream)
                 if self.context:
@@ -177,19 +183,19 @@ def lj_force_numpy(positions, epsilon, sigma, cutoff):
     energy = 0.0
 
     cutoff_sq = cutoff * cutoff
-    sigma6 = sigma ** 6
-    sigma12 = sigma ** 12
+    sigma6 = sigma**6
+    sigma12 = sigma**12
 
     for i in range(N):
         for j in range(i + 1, N):
             r_vec = positions[i] - positions[j]
-            r_sq = np.sum(r_vec ** 2)
+            r_sq = np.sum(r_vec**2)
 
             if r_sq < cutoff_sq and r_sq > 1e-10:
                 r2_inv = 1.0 / r_sq
-                r6_inv = r2_inv ** 3
+                r6_inv = r2_inv**3
                 sigma6_r6 = sigma6 * r6_inv
-                sigma12_r12 = sigma6_r6 ** 2
+                sigma12_r12 = sigma6_r6**2
 
                 # 势能
                 potential = 4.0 * epsilon * (sigma12_r12 - sigma6_r6)
@@ -218,7 +224,7 @@ def lj_force_pytorch(positions, epsilon, sigma, cutoff):
     r_vec = positions.unsqueeze(1) - positions.unsqueeze(0)  # 内核调用 1
 
     # Step 2: 计算距离平方 [N, N]
-    r_sq = (r_vec ** 2).sum(dim=-1)  # 内核调用 2, 3
+    r_sq = (r_vec**2).sum(dim=-1)  # 内核调用 2, 3
 
     # Step 3: 创建掩码（排除自身和超出截断距离的原子对）
     cutoff_sq = cutoff * cutoff
@@ -228,12 +234,12 @@ def lj_force_pytorch(positions, epsilon, sigma, cutoff):
     # Step 4: 计算 LJ 势能和力（只对有效原子对）
     r_sq_safe = torch.where(mask, r_sq, torch.ones_like(r_sq))  # 内核调用 7
     r2_inv = 1.0 / r_sq_safe  # 内核调用 8
-    r6_inv = r2_inv ** 3  # 内核调用 9
+    r6_inv = r2_inv**3  # 内核调用 9
 
-    sigma6 = sigma ** 6
-    sigma12 = sigma ** 12
+    sigma6 = sigma**6
+    sigma12 = sigma**12
     sigma6_r6 = sigma6 * r6_inv  # 内核调用 10
-    sigma12_r12 = sigma6_r6 ** 2  # 内核调用 11
+    sigma12_r12 = sigma6_r6**2  # 内核调用 11
 
     # Step 5: 势能
     potential = 4.0 * epsilon * (sigma12_r12 - sigma6_r6)  # 内核调用 12, 13
@@ -241,8 +247,12 @@ def lj_force_pytorch(positions, epsilon, sigma, cutoff):
     energy = potential.sum() / 2.0  # 除以2避免重复计算，内核调用 15
 
     # Step 6: 力
-    force_scalar = 24.0 * epsilon * r2_inv * (2.0 * sigma12_r12 - sigma6_r6)  # 内核调用 16, 17, 18
-    force_scalar = torch.where(mask, force_scalar, torch.zeros_like(force_scalar))  # 内核调用 19
+    force_scalar = (
+        24.0 * epsilon * r2_inv * (2.0 * sigma12_r12 - sigma6_r6)
+    )  # 内核调用 16, 17, 18
+    force_scalar = torch.where(
+        mask, force_scalar, torch.zeros_like(force_scalar)
+    )  # 内核调用 19
 
     # Step 7: 力向量
     f_vec = force_scalar.unsqueeze(-1) * r_vec  # 内核调用 20
@@ -284,7 +294,9 @@ def benchmark_pytorch_cpu(positions, epsilon, sigma, cutoff, warmup=5, iteration
     return (end - start) / iterations * 1000
 
 
-def benchmark_custom_npu(positions, epsilon, sigma, cutoff, op, warmup=5, iterations=20):
+def benchmark_custom_npu(
+    positions, epsilon, sigma, cutoff, op, warmup=5, iterations=20
+):
     """自定义算子性能测试"""
     for _ in range(warmup):
         _ = op(positions, epsilon, sigma, cutoff)
@@ -313,23 +325,25 @@ def verify_precision(positions, epsilon, sigma, cutoff, op):
         energy_rel_err = 0.0
 
     return {
-        'force_max_err': force_max_err,
-        'force_mean_err': force_mean_err,
-        'energy_err': energy_err,
-        'energy_rel_err': energy_rel_err,
-        'forces_ref': forces_ref,
-        'forces_npu': forces_npu,
-        'energy_ref': energy_ref,
-        'energy_npu': energy_npu,
+        "force_max_err": force_max_err,
+        "force_mean_err": force_mean_err,
+        "energy_err": energy_err,
+        "energy_rel_err": energy_rel_err,
+        "forces_ref": forces_ref,
+        "forces_npu": forces_npu,
+        "energy_ref": energy_ref,
+        "energy_npu": energy_npu,
     }
 
 
 def run_benchmark(num_atoms, epsilon, sigma, cutoff, op):
     """运行单个配置的性能测试"""
-    print(f"\n{'='*70}")
-    print(f"Configuration: N_atoms={num_atoms}, ε={epsilon}, σ={sigma}, cutoff={cutoff}")
+    print(f"\n{'=' * 70}")
+    print(
+        f"Configuration: N_atoms={num_atoms}, ε={epsilon}, σ={sigma}, cutoff={cutoff}"
+    )
     print(f"Atom pairs: {num_atoms * (num_atoms - 1) // 2:,}")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     # 生成随机原子坐标（在一个盒子内）
     np.random.seed(42)
@@ -353,7 +367,7 @@ def run_benchmark(num_atoms, epsilon, sigma, cutoff, op):
     # NumPy (只对小规模测试)
     if num_atoms <= 200:
         time_numpy = benchmark_numpy(positions, epsilon, sigma, cutoff)
-        results['NumPy'] = time_numpy
+        results["NumPy"] = time_numpy
         print(f"  NumPy CPU:         {time_numpy:.3f} ms")
     else:
         print(f"  NumPy CPU:         (skipped, too slow)")
@@ -361,35 +375,35 @@ def run_benchmark(num_atoms, epsilon, sigma, cutoff, op):
     # PyTorch CPU
     time_torch = benchmark_pytorch_cpu(positions, epsilon, sigma, cutoff)
     if time_torch:
-        results['PyTorch CPU'] = time_torch
+        results["PyTorch CPU"] = time_torch
         print(f"  PyTorch CPU:       {time_torch:.3f} ms")
 
     # Custom NPU
     time_custom = benchmark_custom_npu(positions, epsilon, sigma, cutoff, op)
-    results['Custom NPU'] = time_custom
+    results["Custom NPU"] = time_custom
     print(f"  Custom Ascend C:   {time_custom:.3f} ms")
 
     # 加速比
     print(f"\nSpeedup:")
-    if 'PyTorch CPU' in results:
+    if "PyTorch CPU" in results:
         print(f"  Custom vs PyTorch CPU: {results['PyTorch CPU'] / time_custom:.2f}x")
-    if 'NumPy' in results:
+    if "NumPy" in results:
         print(f"  Custom vs NumPy:       {results['NumPy'] / time_custom:.2f}x")
 
     return results
 
 
 def main():
-    print("="*70)
+    print("=" * 70)
     print("LJ Force Fused Operator Benchmark")
-    print("="*70)
+    print("=" * 70)
     print(f"PyTorch available: {HAS_TORCH}")
     print(f"NPU available: {HAS_NPU}")
 
     # LJ 参数 (Argon)
     epsilon = 0.0103  # eV
-    sigma = 3.4       # Angstrom
-    cutoff = 10.0     # Angstrom
+    sigma = 3.4  # Angstrom
+    cutoff = 10.0  # Angstrom
 
     # 初始化算子
     print("\nInitializing ACL...")
@@ -401,10 +415,10 @@ def main():
 
     # 测试不同规模
     configs = [
-        64,    # 小规模
-        128,   # 中等规模
-        256,   # 较大规模
-        512,   # 大规模
+        64,  # 小规模
+        128,  # 中等规模
+        256,  # 较大规模
+        512,  # 大规模
     ]
 
     all_results = []
@@ -415,27 +429,36 @@ def main():
         except Exception as e:
             print(f"Error with N={num_atoms}: {e}")
             import traceback
+
             traceback.print_exc()
 
     # 汇总
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Summary")
-    print("="*70)
-    print(f"{'N_atoms':<10} {'Pairs':<12} {'NumPy':<12} {'PyTorch':<12} {'Custom':<12} {'Speedup':<10}")
-    print("-"*70)
+    print("=" * 70)
+    print(
+        f"{'N_atoms':<10} {'Pairs':<12} {'NumPy':<12} {'PyTorch':<12} {'Custom':<12} {'Speedup':<10}"
+    )
+    print("-" * 70)
 
     for num_atoms, results in all_results:
         pairs = num_atoms * (num_atoms - 1) // 2
-        numpy_t = f"{results.get('NumPy', 0):.2f}" if results.get('NumPy') else "N/A"
-        torch_t = f"{results.get('PyTorch CPU', 0):.2f}" if results.get('PyTorch CPU') else "N/A"
+        numpy_t = f"{results.get('NumPy', 0):.2f}" if results.get("NumPy") else "N/A"
+        torch_t = (
+            f"{results.get('PyTorch CPU', 0):.2f}"
+            if results.get("PyTorch CPU")
+            else "N/A"
+        )
         custom_t = f"{results.get('Custom NPU', 0):.2f}"
 
-        if results.get('PyTorch CPU') and results.get('Custom NPU'):
+        if results.get("PyTorch CPU") and results.get("Custom NPU"):
             speedup = f"{results['PyTorch CPU'] / results['Custom NPU']:.2f}x"
         else:
             speedup = "N/A"
 
-        print(f"{num_atoms:<10} {pairs:<12} {numpy_t:<12} {torch_t:<12} {custom_t:<12} {speedup:<10}")
+        print(
+            f"{num_atoms:<10} {pairs:<12} {numpy_t:<12} {torch_t:<12} {custom_t:<12} {speedup:<10}"
+        )
 
 
 if __name__ == "__main__":

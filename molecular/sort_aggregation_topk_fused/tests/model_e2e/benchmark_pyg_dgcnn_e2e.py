@@ -32,7 +32,9 @@ class DgcnnGraphTopology:
         self.weight = wt
 
     def to(self, device):
-        return DgcnnGraphTopology(self.source.to(device), self.target.to(device), self.weight.to(device))
+        return DgcnnGraphTopology(
+            self.source.to(device), self.target.to(device), self.weight.to(device)
+        )
 
 
 class DgcnnTimingBundle:
@@ -286,9 +288,7 @@ def _timed_paths(context):
         resident_e2e_ms, resident_output = benchmark_timer_ms(
             resident_e2e, warmup, repeat
         )
-        custom_e2e_ms, custom_output = benchmark_timer_ms(
-            custom_e2e, warmup, repeat
-        )
+        custom_e2e_ms, custom_output = benchmark_timer_ms(custom_e2e, warmup, repeat)
         official_regression_output = model.classifier(
             model.pool(official_node_features, batch.batch)
         )
@@ -441,9 +441,7 @@ def main():
     result = run_benchmark(arguments)
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(_json.dumps(result, indent=2) + "\n")
-    LOGGER.info(
-        "sort benchmark result: %s", _json.dumps(result, indent=2)
-    )
+    LOGGER.info("sort benchmark result: %s", _json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

@@ -11,7 +11,13 @@ import numpy as np
 
 def _validate_types_and_dims(tensors, chunk_size):
     u_arr, dt_arr, a_arr, b_arr, c_arr = tensors
-    for label, tensor in [("u", u_arr), ("dt", dt_arr), ("a", a_arr), ("b", b_arr), ("c", c_arr)]:
+    for label, tensor in [
+        ("u", u_arr),
+        ("dt", dt_arr),
+        ("a", a_arr),
+        ("b", b_arr),
+        ("c", c_arr),
+    ]:
         if not isinstance(tensor, np.ndarray):
             raise TypeError(f"Input {label} must be a numpy ndarray")
     if int(chunk_size) <= 0:
@@ -33,7 +39,9 @@ def _validate_mamba2_shapes(tensors, d_skip):
     if (dt_arr.shape, a_arr.shape, b_arr.shape, c_arr.shape) != expected_shapes:
         raise ValueError("Mismatched tensor shapes in Mamba-2 SSD")
     if d_skip is not None and d_skip.shape != (num_heads, head_dim):
-        raise ValueError(f"Expected d shape ({num_heads}, {head_dim}), got {d_skip.shape}")
+        raise ValueError(
+            f"Expected d shape ({num_heads}, {head_dim}), got {d_skip.shape}"
+        )
     return batch_size, seq_len, num_heads, head_dim, state_dim
 
 
@@ -59,17 +67,26 @@ def reference(*args, **kwargs):
 
     tensors = (u_arr, dt_arr, a_arr, b_arr, c_arr)
     _validate_types_and_dims(tensors, chunk_size)
-    batch_size, seq_len, num_heads, head_dim, state_dim = _validate_mamba2_shapes(tensors, d_skip)
+    batch_size, seq_len, num_heads, head_dim, state_dim = _validate_mamba2_shapes(
+        tensors, d_skip
+    )
 
     out = np.zeros_like(u_arr, dtype=np.float32)
     state = np.zeros((batch_size, num_heads, state_dim, head_dim), dtype=np.float32)
 
     for step_idx in range(seq_len):
         dt_step = dt_arr[:, step_idx, :, np.newaxis, np.newaxis]
-        alpha = np.exp(dt_arr[:, step_idx, :] * a_arr[np.newaxis, :])[:, :, np.newaxis, np.newaxis]
+        alpha = np.exp(dt_arr[:, step_idx, :] * a_arr[np.newaxis, :])[
+            :, :, np.newaxis, np.newaxis
+        ]
         state, y_step = _step_scan(
-            state, u_arr[:, step_idx, :, :], dt_step, alpha,
-            b_arr[:, step_idx, :, :], c_arr[:, step_idx, :, :], d_skip
+            state,
+            u_arr[:, step_idx, :, :],
+            dt_step,
+            alpha,
+            b_arr[:, step_idx, :, :],
+            c_arr[:, step_idx, :, :],
+            d_skip,
         )
         out[:, step_idx, :, :] = y_step
 

@@ -12,13 +12,19 @@
 import numpy as np
 import time
 
+
 def pinn_fc_numpy(inputs, weights_list, bias_list, activation="tanh"):
-    act = {"tanh": np.tanh, "sigmoid": lambda x: 1/(1+np.exp(-x)), "relu": lambda x: np.maximum(0, x)}
+    act = {
+        "tanh": np.tanh,
+        "sigmoid": lambda x: 1 / (1 + np.exp(-x)),
+        "relu": lambda x: np.maximum(0, x),
+    }
     f = act[activation]
     h = inputs
     for W, b in zip(weights_list, bias_list):
         h = f(h @ W.T + b)
     return h
+
 
 def run_benchmark(batch_sizes=None, hidden_dims=None):
     if batch_sizes is None:
@@ -45,7 +51,8 @@ def run_benchmark(batch_sizes=None, hidden_dims=None):
                 _ = pinn_fc_numpy(inputs, [W1, W2, W3], [b1, b2, b3], "tanh")
             elapsed = (time.perf_counter() - start) / 100
 
-            print(f"{B:>8} {H:>8} {elapsed*1000:>10.3f} {B/elapsed:>12.0f}")
+            print(f"{B:>8} {H:>8} {elapsed * 1000:>10.3f} {B / elapsed:>12.0f}")
+
 
 if __name__ == "__main__":
     run_benchmark()

@@ -4,6 +4,7 @@
 No Cube / Matmul API: tiling carries only {batch, m}; batches are split across
 AIV cores. Run on node202 after sourcing the CANN set_env.sh.
 """
+
 import glob
 import os
 import re
@@ -16,7 +17,7 @@ KERNEL_SRC = os.path.join(REPO, "batch_spd_inv_fp32_ascendc.cpp")
 OUT = os.path.join(REPO, "build/msopgen_batch_spd_inv_fp32")
 COMPUTE_UNIT = "ai_core-ascend910b"
 
-TILING_HEADER = '''#include "register/tilingdata_base.h"
+TILING_HEADER = """#include "register/tilingdata_base.h"
 
 namespace optiling {
 BEGIN_TILING_DATA_DEF(BatchSpdInvFp32TilingData)
@@ -26,9 +27,9 @@ END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(BatchSpdInvFp32, BatchSpdInvFp32TilingData)
 }
-'''
+"""
 
-TILING_FUNC = '''static ge::graphStatus TilingFunc(gert::TilingContext* context)
+TILING_FUNC = """static ge::graphStatus TilingFunc(gert::TilingContext* context)
 {
   BatchSpdInvFp32TilingData tiling;
   const auto* g_shape = context->GetInputShape(0);
@@ -55,21 +56,21 @@ TILING_FUNC = '''static ge::graphStatus TilingFunc(gert::TilingContext* context)
   tiling.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
   context->GetRawTilingData()->SetDataSize(tiling.GetDataSize());
   return ge::GRAPH_SUCCESS;
-}'''
+}"""
 
-INFER_SHAPE = '''static ge::graphStatus InferShape(gert::InferShapeContext* context)
+INFER_SHAPE = """static ge::graphStatus InferShape(gert::InferShapeContext* context)
 {
     const gert::Shape* g_shape = context->GetInputShape(0);
     gert::Shape* gi_shape = context->GetOutputShape(0);
     *gi_shape = *g_shape;
     return GRAPH_SUCCESS;
-}'''
+}"""
 
-INFER_DTYPE = '''static ge::graphStatus InferDataType(gert::InferDataTypeContext *context)
+INFER_DTYPE = """static ge::graphStatus InferDataType(gert::InferDataTypeContext *context)
 {
 context->SetOutputDataType(0, context->GetInputDataType(0));
 return ge::GRAPH_SUCCESS;
-}'''
+}"""
 
 
 def run(cmd, cwd):
@@ -83,8 +84,23 @@ def main():
     shutil.rmtree(OUT, ignore_errors=True)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
-    run(["msopgen", "gen", "-i", JSON, "-f", "aclnn", "-c", COMPUTE_UNIT,
-         "-out", OUT, "-lan", "cpp"], cwd=REPO)
+    run(
+        [
+            "msopgen",
+            "gen",
+            "-i",
+            JSON,
+            "-f",
+            "aclnn",
+            "-c",
+            COMPUTE_UNIT,
+            "-out",
+            OUT,
+            "-lan",
+            "cpp",
+        ],
+        cwd=REPO,
+    )
 
     kfiles = glob.glob(os.path.join(OUT, "op_kernel", "*.cpp"))
     assert len(kfiles) == 1, kfiles
@@ -103,18 +119,39 @@ def main():
 
     host = open(host_cpp, encoding="utf-8").read()
     if "tiling/platform/platform_ascendc.h" not in host:
-        host = host.replace('#include "register/op_def_registry.h"',
-                            '#include "register/op_def_registry.h"\n#include "tiling/platform/platform_ascendc.h"', 1)
-    host = re.sub(r"static ge::graphStatus TilingFunc\(gert::TilingContext\* context\)\n\{.*?\n\}",
-                  TILING_FUNC, host, count=1, flags=re.S)
+        host = host.replace(
+            '#include "register/op_def_registry.h"',
+            '#include "register/op_def_registry.h"\n#include "tiling/platform/platform_ascendc.h"',
+            1,
+        )
+    host = re.sub(
+        r"static ge::graphStatus TilingFunc\(gert::TilingContext\* context\)\n\{.*?\n\}",
+        TILING_FUNC,
+        host,
+        count=1,
+        flags=re.S,
+    )
     assert TILING_FUNC in host, "TilingFunc patch failed"
-    host = re.sub(r"static ge::graphStatus InferShape\(gert::InferShapeContext\* context\)\n\{.*?\n\}",
-                  INFER_SHAPE, host, count=1, flags=re.S)
+    host = re.sub(
+        r"static ge::graphStatus InferShape\(gert::InferShapeContext\* context\)\n\{.*?\n\}",
+        INFER_SHAPE,
+        host,
+        count=1,
+        flags=re.S,
+    )
     assert INFER_SHAPE in host, "InferShape patch failed"
-    host = re.sub(r"static ge::graphStatus InferDataType\(gert::InferDataTypeContext \*context\)\n\{.*?\n\}",
-                  INFER_DTYPE, host, count=1, flags=re.S)
+    host = re.sub(
+        r"static ge::graphStatus InferDataType\(gert::InferDataTypeContext \*context\)\n\{.*?\n\}",
+        INFER_DTYPE,
+        host,
+        count=1,
+        flags=re.S,
+    )
     assert INFER_DTYPE in host, "InferDataType patch failed"
-    host = host.replace('this->AICore().AddConfig("ascend910");', 'this->AICore().AddConfig("ascend910b");')
+    host = host.replace(
+        'this->AICore().AddConfig("ascend910");',
+        'this->AICore().AddConfig("ascend910b");',
+    )
     with open(host_cpp, "w", encoding="utf-8") as f:
         f.write(host)
 

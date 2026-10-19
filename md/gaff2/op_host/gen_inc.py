@@ -11,27 +11,29 @@ so_path = os.path.join(_PROJECT_ROOT, "build", "lib", "libgaff2_force_kernel.so"
 with open(so_path, "rb") as f:
     full = f.read()
 
-idx = full.find(b'\x7fELF')
+idx = full.find(b"\x7fELF")
 sub = full[idx:]
-e_shoff = struct.unpack('<Q', sub[40:48])[0]
-e_shentsize = struct.unpack('<H', sub[58:60])[0]
-e_shnum = struct.unpack('<H', sub[60:62])[0]
-e_shstrndx = struct.unpack('<H', sub[62:64])[0]
+e_shoff = struct.unpack("<Q", sub[40:48])[0]
+e_shentsize = struct.unpack("<H", sub[58:60])[0]
+e_shnum = struct.unpack("<H", sub[60:62])[0]
+e_shstrndx = struct.unpack("<H", sub[62:64])[0]
 
 str_tab_hdr = e_shoff + e_shstrndx * e_shentsize
-str_offset = struct.unpack('<Q', sub[str_tab_hdr+24:str_tab_hdr+32])[0]
-str_size = struct.unpack('<Q', sub[str_tab_hdr+32:str_tab_hdr+40])[0]
-str_table = sub[str_offset:str_offset+str_size]
+str_offset = struct.unpack("<Q", sub[str_tab_hdr + 24 : str_tab_hdr + 32])[0]
+str_size = struct.unpack("<Q", sub[str_tab_hdr + 32 : str_tab_hdr + 40])[0]
+str_table = sub[str_offset : str_offset + str_size]
 
 data = None
 for s in range(e_shnum):
     sh_off = e_shoff + s * e_shentsize
-    name_idx = struct.unpack('<I', sub[sh_off:sh_off+4])[0]
-    sh_offset = struct.unpack('<Q', sub[sh_off+24:sh_off+32])[0]
-    sh_size = struct.unpack('<Q', sub[sh_off+32:sh_off+40])[0]
-    name = str_table[name_idx:str_table.find(b'\x00', name_idx)].decode('ascii', errors='replace')
-    if 'ascend.kernel' in name:
-        data = sub[sh_offset:sh_offset+sh_size]
+    name_idx = struct.unpack("<I", sub[sh_off : sh_off + 4])[0]
+    sh_offset = struct.unpack("<Q", sub[sh_off + 24 : sh_off + 32])[0]
+    sh_size = struct.unpack("<Q", sub[sh_off + 32 : sh_off + 40])[0]
+    name = str_table[name_idx : str_table.find(b"\x00", name_idx)].decode(
+        "ascii", errors="replace"
+    )
+    if "ascend.kernel" in name:
+        data = sub[sh_offset : sh_offset + sh_size]
         break
 
 if data is None:
@@ -40,7 +42,7 @@ if data is None:
 
 # The .so section has a 20-byte header (CANN metadata), skip it
 # The actual ELF binary starts at offset 20
-if len(data) > 20 and data[0] != 0x7f and data[20] == 0x7f:
+if len(data) > 20 and data[0] != 0x7F and data[20] == 0x7F:
     data = data[20:]
 
 print(f"Extracted {len(data)} bytes from {so_path}")

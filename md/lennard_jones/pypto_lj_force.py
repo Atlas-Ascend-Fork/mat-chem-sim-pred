@@ -21,6 +21,7 @@ from numpy.testing import assert_allclose
 # Core LJ computation
 # ---------------------------------------------------------------------------
 
+
 def lj_force_core(
     positions: pt.Tensor,
     epsilon: float,
@@ -37,7 +38,7 @@ def lj_force_core(
     # Pairwise displacement vectors: [N, N, 3]
     pos_i = pt.unsqueeze(positions, 1)  # [N, 1, 3]
     pos_j = pt.unsqueeze(positions, 0)  # [1, N, 3]
-    diff = pos_i - pos_j                 # [N, N, 3]  broadcast
+    diff = pos_i - pos_j  # [N, N, 3]  broadcast
 
     # Squared distances: [N, N]
     r2 = pt.sum(diff * diff, dim=-1)
@@ -52,10 +53,10 @@ def lj_force_core(
     energy_mask = pt.cast(upper_f > 0.0, pt.DT_BOOL) & valid
 
     # Full non-diagonal mask for forces
-    idx_1d = pt.arange(N, dtype=pt.DT_INT32)       # [N]
-    idx_i = pt.unsqueeze(idx_1d, 1)                # [N, 1]
-    idx_j = pt.unsqueeze(idx_1d, 0)                # [1, N]
-    self_mask = idx_i == idx_j                     # [N, N]  diagonal
+    idx_1d = pt.arange(N, dtype=pt.DT_INT32)  # [N]
+    idx_i = pt.unsqueeze(idx_1d, 1)  # [N, 1]
+    idx_j = pt.unsqueeze(idx_1d, 0)  # [1, N]
+    self_mask = idx_i == idx_j  # [N, N]  diagonal
     force_mask = valid & (~self_mask)
 
     # ----- safe r² (avoid division by zero) -----
@@ -65,7 +66,7 @@ def lj_force_core(
     r2inv = pt.reciprocal(r2_safe)
     r6inv = r2inv * r2inv * r2inv
 
-    sigma6 = sigma ** 6
+    sigma6 = sigma**6
     sigma12 = sigma6 * sigma6
 
     s6r6 = sigma6 * r6inv
@@ -84,10 +85,10 @@ def lj_force_core(
 
     # Force vectors: fscalar[i,j] * diff[i,j,:]
     fscalar_3d = pt.unsqueeze(fscalar_masked, -1)  # [N, N, 1]
-    force_pairs = fscalar_3d * diff                  # [N, N, 3]
+    force_pairs = fscalar_3d * diff  # [N, N, 3]
 
     # Sum over j → net force on each atom i
-    forces = pt.sum(force_pairs, dim=1)              # [N, 3]
+    forces = pt.sum(force_pairs, dim=1)  # [N, 3]
 
     return forces, total_energy
 
@@ -95,6 +96,7 @@ def lj_force_core(
 # ---------------------------------------------------------------------------
 # PyPTO kernel (JIT-compiled to NPU)
 # ---------------------------------------------------------------------------
+
 
 @pt.frontend.jit
 def lj_force_kernel(
@@ -127,12 +129,13 @@ def lj_force_kernel(
 # Reference (NumPy) for validation
 # ---------------------------------------------------------------------------
 
+
 def lj_force_numpy(positions, epsilon, sigma, cutoff):
     N = positions.shape[0]
     forces = np.zeros_like(positions)
     energy = 0.0
     cutoff_sq = cutoff * cutoff
-    sigma6 = sigma ** 6
+    sigma6 = sigma**6
     sigma12 = sigma6 * sigma6
 
     for i in range(N):
@@ -161,12 +164,14 @@ def lj_force_numpy(positions, epsilon, sigma, cutoff):
 # Tests  (adapted from existing test_lj_force.py)
 # ---------------------------------------------------------------------------
 
+
 def test_two_atoms():
     sigma, epsilon, cutoff = 3.4, 0.01, 10.0
-    positions = torch.tensor([[0.0, 0.0, 0.0], [sigma, 0.0, 0.0]],
-                              dtype=torch.float32, device='npu')
+    positions = torch.tensor(
+        [[0.0, 0.0, 0.0], [sigma, 0.0, 0.0]], dtype=torch.float32, device="npu"
+    )
     forces = torch.zeros_like(positions)
-    energy = torch.zeros(1, dtype=torch.float32, device='npu')
+    energy = torch.zeros(1, dtype=torch.float32, device="npu")
 
     lj_force_kernel(positions, forces, energy, epsilon, sigma, cutoff)
 
@@ -185,9 +190,9 @@ def test_20_atoms():
     pos_np = np.random.rand(20, 3).astype(np.float32) * 15.0
     sigma, epsilon, cutoff = 3.4, 0.01, 10.0
 
-    positions = torch.from_numpy(pos_np).to('npu')
-    forces = torch.zeros(20, 3, dtype=torch.float32, device='npu')
-    energy = torch.zeros(1, dtype=torch.float32, device='npu')
+    positions = torch.from_numpy(pos_np).to("npu")
+    forces = torch.zeros(20, 3, dtype=torch.float32, device="npu")
+    energy = torch.zeros(1, dtype=torch.float32, device="npu")
 
     lj_force_kernel(positions, forces, energy, epsilon, sigma, cutoff)
 
@@ -201,7 +206,9 @@ def test_20_atoms():
     energy_rel = energy_err / (abs(energy_ref) + 1e-10)
 
     status = "PASS" if force_rel < 0.01 and energy_rel < 0.01 else "FAIL"
-    print(f"  20 atoms: force_rel={force_rel:.2e}  energy_rel={energy_rel:.2e}  [{status}]")
+    print(
+        f"  20 atoms: force_rel={force_rel:.2e}  energy_rel={energy_rel:.2e}  [{status}]"
+    )
 
 
 def test_newton_third_law():
@@ -209,9 +216,9 @@ def test_newton_third_law():
     pos_np = np.random.rand(50, 3).astype(np.float32) * 10.0
     sigma, epsilon, cutoff = 3.4, 0.01, 10.0
 
-    positions = torch.from_numpy(pos_np).to('npu')
-    forces = torch.zeros(50, 3, dtype=torch.float32, device='npu')
-    energy = torch.zeros(1, dtype=torch.float32, device='npu')
+    positions = torch.from_numpy(pos_np).to("npu")
+    forces = torch.zeros(50, 3, dtype=torch.float32, device="npu")
+    energy = torch.zeros(1, dtype=torch.float32, device="npu")
 
     lj_force_kernel(positions, forces, energy, epsilon, sigma, cutoff)
 
@@ -222,10 +229,11 @@ def test_newton_third_law():
 
 def test_cutoff():
     sigma, epsilon, cutoff = 3.4, 0.01, 5.0
-    positions = torch.tensor([[0.0, 0.0, 0.0], [cutoff + 1.0, 0.0, 0.0]],
-                              dtype=torch.float32, device='npu')
+    positions = torch.tensor(
+        [[0.0, 0.0, 0.0], [cutoff + 1.0, 0.0, 0.0]], dtype=torch.float32, device="npu"
+    )
     forces = torch.zeros_like(positions)
-    energy = torch.zeros(1, dtype=torch.float32, device='npu')
+    energy = torch.zeros(1, dtype=torch.float32, device="npu")
 
     lj_force_kernel(positions, forces, energy, epsilon, sigma, cutoff)
 
@@ -241,9 +249,9 @@ def test_larger_system():
     pos_np = np.random.rand(N, 3).astype(np.float32) * 15.0
     sigma, epsilon, cutoff = 3.4, 0.01, 10.0
 
-    positions = torch.from_numpy(pos_np).to('npu')
-    forces = torch.zeros(N, 3, dtype=torch.float32, device='npu')
-    energy = torch.zeros(1, dtype=torch.float32, device='npu')
+    positions = torch.from_numpy(pos_np).to("npu")
+    forces = torch.zeros(N, 3, dtype=torch.float32, device="npu")
+    energy = torch.zeros(1, dtype=torch.float32, device="npu")
 
     lj_force_kernel(positions, forces, energy, epsilon, sigma, cutoff)
 
@@ -263,7 +271,7 @@ def main():
     print("PyPTO LJ Force Operator — Tests")
     print("=" * 55)
 
-    device_count = torch.npu.device_count() if hasattr(torch, 'npu') else 0
+    device_count = torch.npu.device_count() if hasattr(torch, "npu") else 0
     print(f"NPU devices available: {device_count}")
 
     test_two_atoms()

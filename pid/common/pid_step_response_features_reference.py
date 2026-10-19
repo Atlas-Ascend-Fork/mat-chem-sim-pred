@@ -57,11 +57,19 @@ def make_step_response_features_case(
     tau = 0.08 + 0.22 * (cand + 1.0) / max(1, candidates)
     damping = 0.04 + 0.18 * ((cand % 9.0) / 8.0)
     response = 1.0 - np.exp(-np.maximum(t - 0.05, 0.0) / tau)
-    ring = damping * np.exp(-3.0 * np.maximum(t - 0.05, 0.0)) * np.sin(2.0 * np.pi * (3.0 + cand * 0.03) * t)
-    noise = rng.normal(loc=0.0, scale=0.002, size=(batch, candidates, n)).astype(np.float32)
+    ring = (
+        damping
+        * np.exp(-3.0 * np.maximum(t - 0.05, 0.0))
+        * np.sin(2.0 * np.pi * (3.0 + cand * 0.03) * t)
+    )
+    noise = rng.normal(loc=0.0, scale=0.002, size=(batch, candidates, n)).astype(
+        np.float32
+    )
     target_delta = (sp_final - sp_initial)[:, None, None]
     pv = sp_initial[:, None, None] + target_delta * (response + ring) + noise
-    return StepResponseFeaturesCase(pv_candidates=pv.astype(np.float32), sp=sp.astype(np.float32))
+    return StepResponseFeaturesCase(
+        pv_candidates=pv.astype(np.float32), sp=sp.astype(np.float32)
+    )
 
 
 def _first_index(mask: np.ndarray, fallback: int) -> np.ndarray:
@@ -85,14 +93,20 @@ def step_response_features(
 
     batch, candidates, n = pv_candidates.shape
     eps = np.float32(1.0e-6)
-    time_axis = (np.arange(n, dtype=np.float32) * np.float32(sample_interval))[None, None, :]
+    time_axis = (np.arange(n, dtype=np.float32) * np.float32(sample_interval))[
+        None, None, :
+    ]
     target = sp[:, -1][:, None]
     initial = pv_candidates[:, :, 0]
     final = pv_candidates[:, :, -1]
     delta = target - initial
     abs_delta = np.maximum(np.abs(delta), eps)
     direction = np.where(delta >= 0.0, 1.0, -1.0).astype(np.float32)
-    normalized = direction[:, :, None] * (pv_candidates - initial[:, :, None]) / abs_delta[:, :, None]
+    normalized = (
+        direction[:, :, None]
+        * (pv_candidates - initial[:, :, None])
+        / abs_delta[:, :, None]
+    )
 
     peak = pv_candidates.max(axis=2)
     trough = pv_candidates.min(axis=2)
@@ -106,8 +120,12 @@ def step_response_features(
     band = np.maximum(abs_delta * settle_band_ratio, np.float32(1.0e-4))
     unsettled = abs_error > band[:, :, None]
     any_unsettled = unsettled.any(axis=2)
-    last_unsettled = np.where(any_unsettled, n - 1 - np.argmax(unsettled[:, :, ::-1], axis=2), -1)
-    settling_time = np.where(any_unsettled, (last_unsettled + 1).astype(np.float32) * sample_interval, 0.0)
+    last_unsettled = np.where(
+        any_unsettled, n - 1 - np.argmax(unsettled[:, :, ::-1], axis=2), -1
+    )
+    settling_time = np.where(
+        any_unsettled, (last_unsettled + 1).astype(np.float32) * sample_interval, 0.0
+    )
 
     features = np.zeros((batch, candidates, len(FEATURE_NAMES)), dtype=np.float32)
     features[:, :, 0] = initial
@@ -177,7 +195,9 @@ def step_response_features_cpu_loop(
                     max(direction * (target - trough), 0.0) / abs_delta,
                     max(rise90 - rise10, 0) * sample_interval,
                     peak_idx * sample_interval,
-                    (last_unsettled + 1) * sample_interval if last_unsettled >= 0 else 0.0,
+                    (last_unsettled + 1) * sample_interval
+                    if last_unsettled >= 0
+                    else 0.0,
                     iae,
                     ise,
                 ],
@@ -186,7 +206,9 @@ def step_response_features_cpu_loop(
     return features
 
 
-def benchmark_reference(batch: int, candidates: int, n: int, iters: int = 10) -> dict[str, float]:
+def benchmark_reference(
+    batch: int, candidates: int, n: int, iters: int = 10
+) -> dict[str, float]:
     case = make_step_response_features_case(batch=batch, candidates=candidates, n=n)
     step_response_features(case.pv_candidates, case.sp)
     start = time.perf_counter()

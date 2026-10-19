@@ -14,6 +14,7 @@ from .lattice_ops import lattice_params_to_matrix
 # PyPTO kernel: dense all-pairs PBC distance matrix  (27 periodic images)
 # ---------------------------------------------------------------------------
 
+
 @pt.frontend.jit
 def compute_pairwise_pbc_distances(
     cart_coords: pt.Tensor([pt.DYNAMIC, 3], pt.DT_FP32),
@@ -38,7 +39,7 @@ def compute_pairwise_pbc_distances(
     oz = pt.reshape(pt.broadcast_to(pt.reshape(n, (1, 1, 3)), (3, 3, 3)), (27,))
     offset_frac = pt.stack([ox, oy, oz], dim=-1)
 
-    offset_cart = pt.einsum('nk,kl->nl', offset_frac, lattice)
+    offset_cart = pt.einsum("nk,kl->nl", offset_frac, lattice)
 
     idx_range = pt.arange(27, pt.DT_FP32)
 
@@ -47,7 +48,7 @@ def compute_pairwise_pbc_distances(
         for j in pt.loop(range(N)):
             diff = ci - cart_coords[j]
             vecs = diff + offset_cart
-            sq = pt.sum(vecs ** 2, dim=-1)
+            sq = pt.sum(vecs**2, dim=-1)
             min_sq = pt.min(sq, dim=0)
             distances_out[i, j] = pt.sqrt(min_sq)
             mask = pt.cast(sq == min_sq, pt.DT_FP32)
@@ -61,6 +62,7 @@ def compute_pairwise_pbc_distances(
 # ---------------------------------------------------------------------------
 # Host-side neighbor selection (CPU)
 # ---------------------------------------------------------------------------
+
 
 def _build_graph_from_distances(dist_matrix, offset_indices, radius, max_num_neighbors):
     """Build edge_index, cell_offsets, num_bonds from dense distance matrix.
@@ -110,7 +112,7 @@ def radius_graph_pbc(
     num_atoms,
     radius=5.0,
     max_num_neighbors=20,
-    device='npu',
+    device="npu",
     lattice=None,
 ):
     """PBC radius graph construction.
@@ -170,7 +172,7 @@ def radius_graph_pbc(
             all_num_bonds.append(np.zeros(0, dtype=np.int32))
             continue
 
-        frac_b = frac_coords[atom_offset:atom_offset + n]
+        frac_b = frac_coords[atom_offset : atom_offset + n]
         lat_b = lattice[b] if lattice.ndim == 3 else lattice
 
         # Step 1: PyPTO kernel on NPU
@@ -187,7 +189,9 @@ def radius_graph_pbc(
         off_np = off_out.cpu().numpy()
 
         # Step 3: Build graph on CPU
-        ei, co, nb = _build_graph_from_distances(dist_np, off_np, radius, max_num_neighbors)
+        ei, co, nb = _build_graph_from_distances(
+            dist_np, off_np, radius, max_num_neighbors
+        )
 
         # Offset indices to global atom positions
         if ei.shape[1] > 0:
@@ -218,8 +222,8 @@ def radius_graph_pbc(
             ei = all_edge_index[i]
             co = all_cell_offsets[i]
             n_e = ei.shape[1]
-            edge_index[:, pos:pos + n_e] = ei
-            cell_offsets[pos:pos + n_e] = co
+            edge_index[:, pos : pos + n_e] = ei
+            cell_offsets[pos : pos + n_e] = co
             pos += n_e
 
     num_bonds = np.concatenate(all_num_bonds)
@@ -229,6 +233,7 @@ def radius_graph_pbc(
 # ---------------------------------------------------------------------------
 # NumPy reference (for validation)
 # ---------------------------------------------------------------------------
+
 
 def radius_graph_pbc_np(frac_coords, lattice, radius, max_num_neighbors):
     """Pure NumPy reference for radius_graph_pbc.
@@ -261,33 +266,39 @@ def radius_graph_pbc_np(frac_coords, lattice, radius, max_num_neighbors):
         for j in range(N):
             diff = cart[i] - cart[j]
             vecs = diff + offsets_cart
-            sq = np.sum(vecs ** 2, axis=-1)
+            sq = np.sum(vecs**2, axis=-1)
             idx = np.argmin(sq)
             dist_matrix[i, j] = np.sqrt(sq[idx])
             offset_matrix[i, j] = offsets_frac[idx].astype(np.int32)
 
-    return _build_graph_from_distances(dist_matrix, offset_matrix, radius, max_num_neighbors)
+    return _build_graph_from_distances(
+        dist_matrix, offset_matrix, radius, max_num_neighbors
+    )
 
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
+
 def test_compute_pairwise_pbc_distances():
     np.random.seed(42)
     N = 8
-    lattice = np.array([
-        [5.0, 0.0, 0.0],
-        [0.0, 5.0, 0.0],
-        [0.0, 0.0, 5.0],
-    ], dtype=np.float32)
+    lattice = np.array(
+        [
+            [5.0, 0.0, 0.0],
+            [0.0, 5.0, 0.0],
+            [0.0, 0.0, 5.0],
+        ],
+        dtype=np.float32,
+    )
     frac = np.random.rand(N, 3).astype(np.float32)
     cart = frac @ lattice.T
 
-    cart_t = torch.from_numpy(cart).to('npu')
-    lat_t = torch.from_numpy(lattice).to('npu')
-    d_out = torch.zeros(N, N, dtype=torch.float32, device='npu')
-    o_out = torch.zeros(N, N, 3, dtype=torch.int32, device='npu')
+    cart_t = torch.from_numpy(cart).to("npu")
+    lat_t = torch.from_numpy(lattice).to("npu")
+    d_out = torch.zeros(N, N, dtype=torch.float32, device="npu")
+    o_out = torch.zeros(N, N, 3, dtype=torch.int32, device="npu")
 
     compute_pairwise_pbc_distances(cart_t, lat_t, d_out, o_out)
 
@@ -309,7 +320,7 @@ def test_compute_pairwise_pbc_distances():
         for j in range(N):
             diff = cart[i] - cart[j]
             vecs = diff + offsets_cart
-            sq = np.sum(vecs ** 2, axis=-1)
+            sq = np.sum(vecs**2, axis=-1)
             idx = np.argmin(sq)
             d_np[i, j] = np.sqrt(sq[idx])
             o_np[i, j] = offsets_frac[idx].astype(np.int32)
@@ -325,11 +336,14 @@ def test_compute_pairwise_pbc_distances():
 def test_radius_graph_pbc():
     np.random.seed(42)
     N = 12
-    lattice = np.array([
-        [8.0, 0.0, 0.0],
-        [0.0, 8.0, 0.0],
-        [0.0, 0.0, 8.0],
-    ], dtype=np.float32)
+    lattice = np.array(
+        [
+            [8.0, 0.0, 0.0],
+            [0.0, 8.0, 0.0],
+            [0.0, 0.0, 8.0],
+        ],
+        dtype=np.float32,
+    )
     frac = np.random.rand(N, 3).astype(np.float32)
 
     radius = 4.0
@@ -337,7 +351,14 @@ def test_radius_graph_pbc():
 
     # Run NPU pipeline
     ei_npu, co_npu, nb_npu = radius_graph_pbc(
-        frac, None, None, N, radius, max_neighbors, 'npu', lattice=lattice,
+        frac,
+        None,
+        None,
+        N,
+        radius,
+        max_neighbors,
+        "npu",
+        lattice=lattice,
     )
 
     # Run NumPy reference

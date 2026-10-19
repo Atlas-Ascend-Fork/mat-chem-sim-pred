@@ -33,14 +33,20 @@ def test_process_capability_matches_cpu_loop():
 
 
 def test_process_capability_known_small_case():
-    values = np.array([[49.0, 50.0, 51.0, 54.0], [48.0, 49.0, 50.0, 51.0]], dtype=np.float32)
+    values = np.array(
+        [[49.0, 50.0, 51.0, 54.0], [48.0, 49.0, 50.0, 51.0]], dtype=np.float32
+    )
     lsl = np.array([47.0, 47.0], dtype=np.float32)
     usl = np.array([53.0, 53.0], dtype=np.float32)
     metrics = capability_metrics(values, lsl, usl)
 
     assert np.isclose(metrics[0, METRIC_NAMES.index("mean")], 51.0, atol=1.0e-6)
-    assert np.isclose(metrics[0, METRIC_NAMES.index("out_of_spec_count")], 1.0, atol=1.0e-6)
-    assert np.isclose(metrics[0, METRIC_NAMES.index("out_of_spec_ratio")], 0.25, atol=1.0e-6)
+    assert np.isclose(
+        metrics[0, METRIC_NAMES.index("out_of_spec_count")], 1.0, atol=1.0e-6
+    )
+    assert np.isclose(
+        metrics[0, METRIC_NAMES.index("out_of_spec_ratio")], 0.25, atol=1.0e-6
+    )
     assert np.isclose(metrics[1, METRIC_NAMES.index("min_value")], 48.0, atol=1.0e-6)
     assert np.isclose(metrics[1, METRIC_NAMES.index("max_value")], 51.0, atol=1.0e-6)
 

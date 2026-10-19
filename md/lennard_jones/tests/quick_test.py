@@ -2,6 +2,7 @@
 """
 LJForceFused 快速测试脚本 (含 NPU)
 """
+
 import os
 import sys
 import numpy as np
@@ -12,6 +13,7 @@ import ctypes
 # ============================================================================
 # LJForceNPU - NPU 算子封装（测试用）
 # ============================================================================
+
 
 class LJForceNPU:
     """LJ Force NPU 算子封装"""
@@ -41,8 +43,10 @@ class LJForceNPU:
             raise RuntimeError("acl module not available")
 
     def _load_library(self):
-        ascend_home = os.environ.get('ASCEND_TOOLKIT_HOME', '/usr/local/Ascend/ascend-toolkit/latest')
-        acl_lib_path = os.path.join(ascend_home, 'lib64', 'libascendcl.so')
+        ascend_home = os.environ.get(
+            "ASCEND_TOOLKIT_HOME", "/usr/local/Ascend/ascend-toolkit/latest"
+        )
+        acl_lib_path = os.path.join(ascend_home, "lib64", "libascendcl.so")
         if os.path.exists(acl_lib_path):
             ctypes.CDLL(acl_lib_path, mode=ctypes.RTLD_GLOBAL)
 
@@ -104,7 +108,7 @@ class LJForceNPU:
             ctypes.c_float(cutoff),
             ctypes.c_void_p(workspace_dev),
             ctypes.c_uint64(workspace_size),
-            ctypes.c_void_p(self.stream)
+            ctypes.c_void_p(self.stream),
         )
 
         acl.rt.synchronize_stream(self.stream)
@@ -127,6 +131,7 @@ class LJForceNPU:
         if self.acl_initialized:
             try:
                 import acl
+
                 if self.stream:
                     acl.rt.destroy_stream(self.stream)
                 if self.context:
@@ -188,25 +193,28 @@ def lj_force_numpy(positions, epsilon, sigma, cutoff):
 def lj_force_pytorch(positions, epsilon, sigma, cutoff):
     """PyTorch 向量化实现"""
     import torch
+
     N = positions.shape[0]
     device = positions.device
 
     r_vec = positions.unsqueeze(1) - positions.unsqueeze(0)
-    r_sq = (r_vec ** 2).sum(dim=-1)
+    r_sq = (r_vec**2).sum(dim=-1)
 
     cutoff_sq = cutoff * cutoff
     valid = (r_sq < cutoff_sq) & (r_sq > 1e-10)
-    upper_tri = torch.triu(torch.ones(N, N, dtype=torch.bool, device=device), diagonal=1)
+    upper_tri = torch.triu(
+        torch.ones(N, N, dtype=torch.bool, device=device), diagonal=1
+    )
     mask = valid & upper_tri
 
     r_sq_safe = torch.where(mask, r_sq, torch.ones_like(r_sq))
     r2_inv = 1.0 / r_sq_safe
-    r6_inv = r2_inv ** 3
+    r6_inv = r2_inv**3
 
-    sigma6 = sigma ** 6
-    sigma12 = sigma ** 12
+    sigma6 = sigma**6
+    sigma12 = sigma**12
     sigma6_r6 = sigma6 * r6_inv
-    sigma12_r12 = sigma6_r6 ** 2
+    sigma12_r12 = sigma6_r6**2
 
     potential = 4.0 * epsilon * (sigma12_r12 - sigma6_r6)
     potential = torch.where(mask, potential, torch.zeros_like(potential))
@@ -263,7 +271,7 @@ def test_npu():
     for N, desc in test_cases:
         print(f"\n--- {desc}规模: {N} 原子 ---")
         np.random.seed(42)
-        box = max(15.0, N ** (1/3) * 4.0)
+        box = max(15.0, N ** (1 / 3) * 4.0)
         positions = np.random.rand(N, 3).astype(np.float32) * box
 
         # CPU 参考
@@ -280,7 +288,9 @@ def test_npu():
 
         status = "PASS" if force_rel < 0.01 and energy_rel < 0.01 else "FAIL"
         print(f"  力误差: {force_err:.2e} (相对: {force_rel:.2e})")
-        print(f"  能量: CPU={energy_cpu:.4f}, NPU={energy_npu:.4f}, 误差={energy_rel:.2e}")
+        print(
+            f"  能量: CPU={energy_cpu:.4f}, NPU={energy_npu:.4f}, 误差={energy_rel:.2e}"
+        )
         print(f"  状态: [{status}]")
 
 
@@ -292,6 +302,7 @@ def benchmark():
 
     try:
         import torch
+
         op = LJForceNPU()
     except Exception as e:
         print(f"[ERROR] {e}")
@@ -300,12 +311,14 @@ def benchmark():
     sigma, epsilon, cutoff = 3.4, 0.01, 10.0
     test_cases = [64, 128, 256]
 
-    print(f"\n{'N':<8} {'Pairs':<10} {'NumPy':<12} {'PyTorch':<12} {'NPU':<12} {'加速比':<10}")
+    print(
+        f"\n{'N':<8} {'Pairs':<10} {'NumPy':<12} {'PyTorch':<12} {'NPU':<12} {'加速比':<10}"
+    )
     print("-" * 64)
 
     for N in test_cases:
         np.random.seed(42)
-        box = max(15.0, N ** (1/3) * 4.0)
+        box = max(15.0, N ** (1 / 3) * 4.0)
         pos_np = np.random.rand(N, 3).astype(np.float32) * box
         pos_pt = torch.from_numpy(pos_np)
         pairs = N * (N - 1) // 2
@@ -333,7 +346,9 @@ def benchmark():
         npu_ms = (time.perf_counter() - start) / 10 * 1000
 
         speedup = pytorch_ms / npu_ms if npu_ms > 0 else 0
-        print(f"{N:<8} {pairs:<10} {numpy_ms:<12.2f} {pytorch_ms:<12.2f} {npu_ms:<12.2f} {speedup:<10.2f}x")
+        print(
+            f"{N:<8} {pairs:<10} {numpy_ms:<12.2f} {pytorch_ms:<12.2f} {npu_ms:<12.2f} {speedup:<10.2f}x"
+        )
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ import torch
 # SinusoidalTimeEmbeddings  --  DAO diffusion.py
 # ---------------------------------------------------------------------------
 
+
 @pt.frontend.jit
 def SinusoidalTimeEmbeddings(
     time: pt.Tensor([pt.DYNAMIC], pt.DT_FP32),
@@ -41,16 +42,16 @@ def SinusoidalTimeEmbeddings(
 # BetaScheduler  --  DAO diffusion.py
 # ---------------------------------------------------------------------------
 
+
 class BetaScheduler:
     """Pre-compute beta schedule and derived quantities for DDPM.
 
     Supports 'cosine' (default) and 'linear' schedules.
     """
 
-    def __init__(self, timesteps=1000, beta_min=1e-4, beta_max=0.02,
-                 schedule='cosine'):
+    def __init__(self, timesteps=1000, beta_min=1e-4, beta_max=0.02, schedule="cosine"):
         self.timesteps = timesteps
-        if schedule == 'cosine':
+        if schedule == "cosine":
             betas = self._cosine_schedule(timesteps)
         else:
             betas = self._linear_schedule(timesteps, beta_min, beta_max)
@@ -63,9 +64,7 @@ class BetaScheduler:
         self.sqrt_alphas_cumprod = np.sqrt(self.alphas_cumprod)
         self.sqrt_one_minus_alphas_cumprod = np.sqrt(1.0 - self.alphas_cumprod)
         self.sqrt_recip_alphas_cumprod = np.sqrt(1.0 / self.alphas_cumprod)
-        self.sqrt_recipm1_alphas_cumprod = np.sqrt(
-            1.0 / self.alphas_cumprod - 1
-        )
+        self.sqrt_recipm1_alphas_cumprod = np.sqrt(1.0 / self.alphas_cumprod - 1)
 
     @staticmethod
     def _cosine_schedule(timesteps):
@@ -82,7 +81,7 @@ class BetaScheduler:
         """Linear beta schedule."""
         return np.linspace(beta_min, beta_max, timesteps, dtype=np.float32)
 
-    def uniform_sample_t(self, batch_size, device='npu'):
+    def uniform_sample_t(self, batch_size, device="npu"):
         """Sample random timesteps uniformly."""
         return torch.randint(0, self.timesteps, (batch_size,), device=device)
 
@@ -95,13 +94,13 @@ class BetaScheduler:
         is_scalar = isinstance(t, int)
         if is_scalar:
             idx = np.array([t], dtype=np.int64)
-            device = 'cpu'
+            device = "cpu"
         elif isinstance(t, torch.Tensor):
             device = t.device
             idx = t.cpu().numpy()
         else:
             idx = np.asarray(t)
-            device = 'cpu'
+            device = "cpu"
 
         def _gather(arr):
             result = torch.from_numpy(arr[idx])
@@ -110,25 +109,22 @@ class BetaScheduler:
             return result.to(device)
 
         return {
-            'betas': _gather(self.betas),
-            'alphas': _gather(self.alphas),
-            'alphas_cumprod': _gather(self.alphas_cumprod),
-            'sqrt_alphas_cumprod': _gather(self.sqrt_alphas_cumprod),
-            'sqrt_one_minus_alphas_cumprod': _gather(
+            "betas": _gather(self.betas),
+            "alphas": _gather(self.alphas),
+            "alphas_cumprod": _gather(self.alphas_cumprod),
+            "sqrt_alphas_cumprod": _gather(self.sqrt_alphas_cumprod),
+            "sqrt_one_minus_alphas_cumprod": _gather(
                 self.sqrt_one_minus_alphas_cumprod
             ),
-            'sqrt_recip_alphas_cumprod': _gather(
-                self.sqrt_recip_alphas_cumprod
-            ),
-            'sqrt_recipm1_alphas_cumprod': _gather(
-                self.sqrt_recipm1_alphas_cumprod
-            ),
+            "sqrt_recip_alphas_cumprod": _gather(self.sqrt_recip_alphas_cumprod),
+            "sqrt_recipm1_alphas_cumprod": _gather(self.sqrt_recipm1_alphas_cumprod),
         }
 
 
 # ---------------------------------------------------------------------------
 # SigmaScheduler  --  DAO diff_utils.py
 # ---------------------------------------------------------------------------
+
 
 class SigmaScheduler:
     """Geometric sigma schedule for score-based models (NCSN)."""
@@ -137,11 +133,9 @@ class SigmaScheduler:
         self.timesteps = timesteps
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
-        log_sigmas = np.linspace(
-            np.log(sigma_min), np.log(sigma_max), timesteps
-        )
+        log_sigmas = np.linspace(np.log(sigma_min), np.log(sigma_max), timesteps)
         self.sigmas = np.exp(log_sigmas).astype(np.float32)
-        self.sigmas_norm = np.cumsum(self.sigmas ** 2).astype(np.float32)
+        self.sigmas_norm = np.cumsum(self.sigmas**2).astype(np.float32)
 
     def get_sigma(self, t):
         """Return sigma at timestep(s) t."""
@@ -151,7 +145,7 @@ class SigmaScheduler:
             device = t.device
             t = t.cpu().numpy()
         else:
-            device = 'cpu'
+            device = "cpu"
             t = np.asarray(t)
         return torch.from_numpy(self.sigmas[t]).to(device)
 
@@ -163,7 +157,7 @@ class SigmaScheduler:
             device = t.device
             t = t.cpu().numpy()
         else:
-            device = 'cpu'
+            device = "cpu"
             t = np.asarray(t)
         return torch.from_numpy(self.sigmas_norm[t]).to(device)
 
@@ -171,6 +165,7 @@ class SigmaScheduler:
 # ---------------------------------------------------------------------------
 # d_log_p_wrapped_normal  --  DAO diff_utils.py
 # ---------------------------------------------------------------------------
+
 
 @pt.frontend.jit
 def d_log_p_wrapped_normal(
@@ -184,12 +179,13 @@ def d_log_p_wrapped_normal(
     sigma: [N, 1] noise level
     score_out: [N, 3] score
     """
-    score_out[:] = -z / (sigma ** 2)
+    score_out[:] = -z / (sigma**2)
 
 
 # ---------------------------------------------------------------------------
 # add_diffusion_noise  --  DDPM forward process
 # ---------------------------------------------------------------------------
+
 
 @pt.frontend.jit
 def add_diffusion_noise(
@@ -214,12 +210,12 @@ def add_diffusion_noise(
 # NumPy reference implementations  (for validation)
 # ---------------------------------------------------------------------------
 
+
 def sinusoidal_time_embeddings_np(time, dim):
     """NumPy reference for SinusoidalTimeEmbeddings."""
     half_dim = dim // 2
     freqs = np.exp(
-        -np.log(10000.0) / (half_dim - 1)
-        * np.arange(half_dim, dtype=np.float32)
+        -np.log(10000.0) / (half_dim - 1) * np.arange(half_dim, dtype=np.float32)
     )
     angles = time[:, None] * freqs[None, :]
     return np.concatenate([np.sin(angles), np.cos(angles)], axis=-1)
@@ -227,7 +223,7 @@ def sinusoidal_time_embeddings_np(time, dim):
 
 def d_log_p_wrapped_normal_np(z, sigma):
     """NumPy reference for d_log_p_wrapped_normal."""
-    return -z / (sigma ** 2)
+    return -z / (sigma**2)
 
 
 def add_diffusion_noise_np(data, noise, alpha_cumprod):
@@ -241,14 +237,15 @@ def add_diffusion_noise_np(data, noise, alpha_cumprod):
 # Tests
 # ---------------------------------------------------------------------------
 
+
 def test_sinusoidal_time_embeddings():
     np.random.seed(42)
     B, dim = 16, 128
     time = np.random.uniform(0, 1, B).astype(np.float32)
     expected = sinusoidal_time_embeddings_np(time, dim)
 
-    t_t = torch.from_numpy(time).to('npu')
-    out_t = torch.zeros(B, dim, dtype=torch.float32, device='npu')
+    t_t = torch.from_numpy(time).to("npu")
+    out_t = torch.zeros(B, dim, dtype=torch.float32, device="npu")
     SinusoidalTimeEmbeddings(t_t, out_t, dim)
     result = out_t.cpu().numpy()
     err = np.abs(result - expected).max()
@@ -257,28 +254,33 @@ def test_sinusoidal_time_embeddings():
 
 
 def test_beta_scheduler():
-    scheduler = BetaScheduler(timesteps=1000, schedule='cosine')
+    scheduler = BetaScheduler(timesteps=1000, schedule="cosine")
     assert len(scheduler.betas) == 1000, "betas length mismatch"
     assert scheduler.betas[0] > 0, "first beta should be positive"
-    print(f"  BetaScheduler (cosine): PASS  "
-          f"beta[0]={scheduler.betas[0]:.6f}  "
-          f"beta[-1]={scheduler.betas[-1]:.6f}")
+    print(
+        f"  BetaScheduler (cosine): PASS  "
+        f"beta[0]={scheduler.betas[0]:.6f}  "
+        f"beta[-1]={scheduler.betas[-1]:.6f}"
+    )
 
-    scheduler_lin = BetaScheduler(timesteps=1000, schedule='linear',
-                                   beta_min=1e-4, beta_max=0.02)
+    scheduler_lin = BetaScheduler(
+        timesteps=1000, schedule="linear", beta_min=1e-4, beta_max=0.02
+    )
     assert len(scheduler_lin.betas) == 1000
-    print(f"  BetaScheduler (linear): PASS  "
-          f"beta[0]={scheduler_lin.betas[0]:.6f}  "
-          f"beta[-1]={scheduler_lin.betas[-1]:.6f}")
+    print(
+        f"  BetaScheduler (linear): PASS  "
+        f"beta[0]={scheduler_lin.betas[0]:.6f}  "
+        f"beta[-1]={scheduler_lin.betas[-1]:.6f}"
+    )
 
-    t = scheduler.uniform_sample_t(8, 'cpu')
+    t = scheduler.uniform_sample_t(8, "cpu")
     params = scheduler.get_params(t)
     for k, v in params.items():
         assert v.shape == (8,), f"{k} shape mismatch: {v.shape}"
     print(f"  BetaScheduler.get_params: PASS  (batch=8)")
 
     scalar_params = scheduler.get_params(0)
-    assert scalar_params['betas'].ndim == 0
+    assert scalar_params["betas"].ndim == 0
     print(f"  BetaScheduler.get_params (scalar): PASS")
 
 
@@ -287,9 +289,11 @@ def test_sigma_scheduler():
     assert len(scheduler.sigmas) == 1000
     assert len(scheduler.sigmas_norm) == 1000
     assert scheduler.sigmas[0] < scheduler.sigmas[-1]
-    print(f"  SigmaScheduler: PASS  "
-          f"sigma[0]={scheduler.sigmas[0]:.4f}  "
-          f"sigma[-1]={scheduler.sigmas[-1]:.2f}")
+    print(
+        f"  SigmaScheduler: PASS  "
+        f"sigma[0]={scheduler.sigmas[0]:.4f}  "
+        f"sigma[-1]={scheduler.sigmas[-1]:.2f}"
+    )
 
 
 def test_d_log_p_wrapped_normal():
@@ -299,9 +303,9 @@ def test_d_log_p_wrapped_normal():
     sigma = np.random.uniform(0.1, 2.0, (N, 1)).astype(np.float32)
     expected = d_log_p_wrapped_normal_np(z, sigma)
 
-    z_t = torch.from_numpy(z).to('npu')
-    s_t = torch.from_numpy(sigma).to('npu')
-    out_t = torch.zeros(N, 3, dtype=torch.float32, device='npu')
+    z_t = torch.from_numpy(z).to("npu")
+    s_t = torch.from_numpy(sigma).to("npu")
+    out_t = torch.zeros(N, 3, dtype=torch.float32, device="npu")
     d_log_p_wrapped_normal(z_t, s_t, out_t)
     result = out_t.cpu().numpy()
     err = np.abs(result - expected).max()
@@ -317,10 +321,10 @@ def test_add_diffusion_noise():
     alpha_cumprod = np.random.uniform(0.0, 1.0, (N, 1)).astype(np.float32)
     expected = add_diffusion_noise_np(data, noise, alpha_cumprod)
 
-    d_t = torch.from_numpy(data).to('npu')
-    n_t = torch.from_numpy(noise).to('npu')
-    a_t = torch.from_numpy(alpha_cumprod).to('npu')
-    out_t = torch.zeros(N, 3, dtype=torch.float32, device='npu')
+    d_t = torch.from_numpy(data).to("npu")
+    n_t = torch.from_numpy(noise).to("npu")
+    a_t = torch.from_numpy(alpha_cumprod).to("npu")
+    out_t = torch.zeros(N, 3, dtype=torch.float32, device="npu")
     add_diffusion_noise(d_t, n_t, a_t, out_t)
     result = out_t.cpu().numpy()
     err = np.abs(result - expected).max()

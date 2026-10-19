@@ -14,6 +14,7 @@ import time
 
 FNO_PI = 3.14159265358979
 
+
 def dft_1d(signal):
     n = len(signal)
     re, im = np.zeros(n), np.zeros(n)
@@ -24,6 +25,7 @@ def dft_1d(signal):
             im[k] += signal[i] * np.sin(angle)
     return re, im
 
+
 def idft_1d(re, im):
     n = len(re)
     sig = np.zeros(n)
@@ -33,7 +35,10 @@ def idft_1d(re, im):
             sig[i] += (re[k] * np.cos(angle) - im[k] * np.sin(angle)) / n
     return sig
 
-def fno_numpy(inputs, lift_w, lift_b, spec_re, spec_im, proj_w, proj_b, grid_dim, modes):
+
+def fno_numpy(
+    inputs, lift_w, lift_b, spec_re, spec_im, proj_w, proj_b, grid_dim, modes
+):
     batch = inputs.shape[0]
     hidden_ch = lift_w.shape[0]
     h = inputs @ lift_w.T + lift_b
@@ -50,6 +55,7 @@ def fno_numpy(inputs, lift_w, lift_b, spec_re, spec_im, proj_w, proj_b, grid_dim
                     h_fft_im[k] += wr * im[k] + wi * re[k]
             h[b, c_out] = idft_1d(h_fft_re, h_fft_im)
     return h @ proj_w.T + proj_b
+
 
 def run_benchmark():
     configs = [(1, 64), (2, 64), (4, 64), (8, 64), (8, 128)]
@@ -71,10 +77,12 @@ def run_benchmark():
 
         start = time.perf_counter()
         for _ in range(20):
-            _ = fno_numpy(inputs, lift_w, lift_b, spec_re, spec_im,
-                           proj_w, proj_b, grid, modes)
+            _ = fno_numpy(
+                inputs, lift_w, lift_b, spec_re, spec_im, proj_w, proj_b, grid, modes
+            )
         elapsed = (time.perf_counter() - start) / 20
-        print(f"{batch:>6} {grid:>6} {elapsed*1000:>10.3f}")
+        print(f"{batch:>6} {grid:>6} {elapsed * 1000:>10.3f}")
+
 
 if __name__ == "__main__":
     run_benchmark()

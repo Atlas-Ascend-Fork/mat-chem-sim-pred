@@ -13,13 +13,16 @@ import sys
 import os
 import numpy as np
 
-def gen_lj_test_data(num_atoms, epsilon=0.0103, sigma=3.4, cutoff=10.0, dtype_str="float32"):
+
+def gen_lj_test_data(
+    num_atoms, epsilon=0.0103, sigma=3.4, cutoff=10.0, dtype_str="float32"
+):
     """生成 LJ 力场测试数据"""
     np_dtype = np.float32 if dtype_str == "float32" else np.float16
 
     # 生成简单立方晶格坐标
     spacing = 4.0
-    n_side = int(np.ceil(num_atoms ** (1/3)))
+    n_side = int(np.ceil(num_atoms ** (1 / 3)))
     positions = []
     for i in range(n_side):
         for j in range(n_side):
@@ -36,19 +39,24 @@ def gen_lj_test_data(num_atoms, epsilon=0.0103, sigma=3.4, cutoff=10.0, dtype_st
 
     print(f"Generated test data for {num_atoms} atoms")
 
-def gen_golden_data(num_atoms, epsilon=0.0103, sigma=3.4, cutoff=10.0, dtype_str="float32"):
+
+def gen_golden_data(
+    num_atoms, epsilon=0.0103, sigma=3.4, cutoff=10.0, dtype_str="float32"
+):
     """生成 LJ 力场参考结果"""
     np_dtype = np.float32 if dtype_str == "float32" else np.float16
 
     # 读取坐标
-    positions = np.fromfile(f"{dtype_str}_positions_lj_force.bin", dtype=np_dtype).reshape(-1, 3)
+    positions = np.fromfile(
+        f"{dtype_str}_positions_lj_force.bin", dtype=np_dtype
+    ).reshape(-1, 3)
 
     # 计算力和能量
     forces = np.zeros_like(positions)
     total_energy = 0.0
 
     cutoff_sq = cutoff * cutoff
-    sigma6 = sigma ** 6
+    sigma6 = sigma**6
     eps4 = 4.0 * epsilon
     eps24 = 24.0 * epsilon
 
@@ -57,11 +65,11 @@ def gen_golden_data(num_atoms, epsilon=0.0103, sigma=3.4, cutoff=10.0, dtype_str
             if i == j:
                 continue
             r_vec = positions[i] - positions[j]
-            r2 = np.sum(r_vec ** 2)
+            r2 = np.sum(r_vec**2)
 
             if r2 < cutoff_sq and r2 > 1e-10:
                 r2inv = 1.0 / r2
-                r6inv = r2inv ** 3
+                r6inv = r2inv**3
                 s6r6 = sigma6 * r6inv
                 s12r12 = s6r6 * s6r6
 
@@ -72,13 +80,18 @@ def gen_golden_data(num_atoms, epsilon=0.0103, sigma=3.4, cutoff=10.0, dtype_str
                 forces[i] += fscalar * r_vec
 
     forces.astype(np_dtype).tofile(f"{dtype_str}_forces_golden_lj_force.bin")
-    np.array([total_energy], dtype=np.float32).tofile(f"{dtype_str}_energy_golden_lj_force.bin")
+    np.array([total_energy], dtype=np.float32).tofile(
+        f"{dtype_str}_energy_golden_lj_force.bin"
+    )
 
     print(f"Generated golden data: total_energy = {total_energy:.6f} eV")
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python gen_data.py <num_atoms> [epsilon] [sigma] [cutoff] [dtype]")
+        print(
+            "Usage: python gen_data.py <num_atoms> [epsilon] [sigma] [cutoff] [dtype]"
+        )
         sys.exit(1)
 
     os.system("rm -rf *.bin")

@@ -21,6 +21,7 @@ from pid_residual_diagnostics_reference import (
     residual_diagnostics_cpu_loop,
 )
 
+
 def _time_ms(fn, iters: int) -> float:
     best = float("inf")
     for _ in range(iters):
@@ -32,9 +33,14 @@ def _time_ms(fn, iters: int) -> float:
 
 def benchmark_case(batch: int, n: int, max_lag: int, iters: int = 5) -> str:
     case = make_residual_diagnostics_case(batch=batch, n=n)
-    vectorized_ms = _time_ms(lambda: residual_diagnostics(case.actual, case.predicted, max_lag=max_lag), iters)
+    vectorized_ms = _time_ms(
+        lambda: residual_diagnostics(case.actual, case.predicted, max_lag=max_lag),
+        iters,
+    )
     loop_ms = _time_ms(
-        lambda: residual_diagnostics_cpu_loop(case.actual, case.predicted, max_lag=max_lag),
+        lambda: residual_diagnostics_cpu_loop(
+            case.actual, case.predicted, max_lag=max_lag
+        ),
         max(1, min(3, iters)),
     )
     speedup = loop_ms / vectorized_ms if vectorized_ms > 0.0 else 0.0
@@ -43,6 +49,7 @@ def benchmark_case(batch: int, n: int, max_lag: int, iters: int = 5) -> str:
         f"B={batch} N={n} lag={max_lag} work_items={work_items} "
         f"loop_ms={loop_ms:.6f} vectorized_ms={vectorized_ms:.6f} vectorized_speedup={speedup:.2f}x"
     )
+
 
 def main() -> None:
     cases = (

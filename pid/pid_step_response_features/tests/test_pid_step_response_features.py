@@ -29,15 +29,21 @@ from pid_step_response_features_reference import (
 
 def test_step_response_features_matches_cpu_loop():
     case = make_step_response_features_case(batch=4, candidates=5, n=128)
-    vectorized = step_response_features(case.pv_candidates, case.sp, sample_interval=0.1)
-    loop = step_response_features_cpu_loop(case.pv_candidates, case.sp, sample_interval=0.1)
+    vectorized = step_response_features(
+        case.pv_candidates, case.sp, sample_interval=0.1
+    )
+    loop = step_response_features_cpu_loop(
+        case.pv_candidates, case.sp, sample_interval=0.1
+    )
     np.testing.assert_allclose(vectorized, loop, rtol=2.0e-5, atol=2.0e-4)
 
 
 def test_step_response_features_known_case():
     pv = np.array([[[0.0, 2.0, 5.0, 9.0, 11.0, 10.0]]], dtype=np.float32)
     sp = np.array([[0.0, 10.0, 10.0, 10.0, 10.0, 10.0]], dtype=np.float32)
-    features = step_response_features(pv, sp, sample_interval=1.0, settle_band_ratio=0.05)
+    features = step_response_features(
+        pv, sp, sample_interval=1.0, settle_band_ratio=0.05
+    )
     idx = {name: i for i, name in enumerate(FEATURE_NAMES)}
 
     assert features.shape == (1, 1, len(FEATURE_NAMES))

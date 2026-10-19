@@ -37,7 +37,9 @@ selective_scan_1d = _REFERENCE_MODULE.selective_scan_1d
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="CPU reference benchmark for SelectiveScan1D.")
+    parser = argparse.ArgumentParser(
+        description="CPU reference benchmark for SelectiveScan1D."
+    )
     parser.add_argument("--batch", type=int, default=1)
     parser.add_argument("--length", type=int, default=128)
     parser.add_argument("--dim", type=int, default=64)
@@ -50,10 +52,17 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if min(args.batch, args.length, args.dim, args.state, args.repeat) <= 0 or args.warmup < 0:
-        raise ValueError("batch/length/dim/state/repeat must be positive and warmup must be non-negative")
+    if (
+        min(args.batch, args.length, args.dim, args.state, args.repeat) <= 0
+        or args.warmup < 0
+    ):
+        raise ValueError(
+            "batch/length/dim/state/repeat must be positive and warmup must be non-negative"
+        )
 
-    case = make_selective_scan_1d_case(args.batch, args.length, args.dim, args.state, args.seed)
+    case = make_selective_scan_1d_case(
+        args.batch, args.length, args.dim, args.state, args.seed
+    )
 
     for _ in range(args.warmup):
         selective_scan_1d(case.u, case.delta, case.a, case.b, case.c, case.d)
@@ -67,7 +76,9 @@ def main() -> int:
 
     assert result is not None
     nan_count = int(np.isnan(result).sum())
-    print("name,shape,cpu_ref_mean_ms,cpu_ref_min_ms,cpu_ref_max_ms,nan_count,output_sum")
+    print(
+        "name,shape,cpu_ref_mean_ms,cpu_ref_min_ms,cpu_ref_max_ms,nan_count,output_sum"
+    )
     print(
         "SelectiveScan1D,"
         f"{args.batch}x{args.length}x{args.dim}xN{args.state},"

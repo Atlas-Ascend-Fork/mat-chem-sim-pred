@@ -12,8 +12,15 @@
 import numpy as np
 import pytest
 
-def deeponet_numpy(branch_input, trunk_input, branch_weights_list,
-                    branch_bias_list, trunk_weights_list, trunk_bias_list):
+
+def deeponet_numpy(
+    branch_input,
+    trunk_input,
+    branch_weights_list,
+    branch_bias_list,
+    trunk_weights_list,
+    trunk_bias_list,
+):
     def fc_forward(x, weights_list, bias_list):
         h = x
         for W, b in zip(weights_list, bias_list):
@@ -25,6 +32,7 @@ def deeponet_numpy(branch_input, trunk_input, branch_weights_list,
 
     result = branch_code @ trunk_code.T
     return result
+
 
 class TestDeepOnet:
     def test_single_query(self):

@@ -41,7 +41,9 @@ class CapabilityCase:
     usl: np.ndarray
 
 
-def make_capability_case(batch: int = 128, n: int = 4096, seed: int = 2026) -> CapabilityCase:
+def make_capability_case(
+    batch: int = 128, n: int = 4096, seed: int = 2026
+) -> CapabilityCase:
     rng = np.random.default_rng(seed)
     base = rng.normal(loc=0.0, scale=1.0, size=(batch, n)).astype(np.float32)
     drift = np.linspace(-0.4, 0.4, batch, dtype=np.float32)[:, None]
@@ -56,7 +58,9 @@ def make_capability_case(batch: int = 128, n: int = 4096, seed: int = 2026) -> C
     return CapabilityCase(values.astype(np.float32), lsl, usl)
 
 
-def capability_metrics(values: np.ndarray, lsl: np.ndarray, usl: np.ndarray) -> np.ndarray:
+def capability_metrics(
+    values: np.ndarray, lsl: np.ndarray, usl: np.ndarray
+) -> np.ndarray:
     values = np.asarray(values, dtype=np.float32)
     lsl = np.asarray(lsl, dtype=np.float32)
     usl = np.asarray(usl, dtype=np.float32)
@@ -106,7 +110,9 @@ def capability_metrics(values: np.ndarray, lsl: np.ndarray, usl: np.ndarray) -> 
     return metrics
 
 
-def capability_metrics_cpu_loop(values: np.ndarray, lsl: np.ndarray, usl: np.ndarray) -> np.ndarray:
+def capability_metrics_cpu_loop(
+    values: np.ndarray, lsl: np.ndarray, usl: np.ndarray
+) -> np.ndarray:
     values = np.asarray(values, dtype=np.float32)
     batch, n = values.shape
     metrics = np.zeros((batch, len(METRIC_NAMES)), dtype=np.float32)

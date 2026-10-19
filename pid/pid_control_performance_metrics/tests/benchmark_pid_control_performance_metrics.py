@@ -20,7 +20,12 @@ from pid_control_performance_reference import benchmark_reference
 
 
 def main() -> None:
-    for batch, n, iters in ((64, 1024, 20), (128, 4096, 10), (512, 4096, 5), (1024, 8192, 3)):
+    for batch, n, iters in (
+        (64, 1024, 20),
+        (128, 4096, 10),
+        (512, 4096, 5),
+        (1024, 8192, 3),
+    ):
         print(benchmark_reference(batch=batch, n=n, iters=iters))
 
 

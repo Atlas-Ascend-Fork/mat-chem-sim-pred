@@ -31,8 +31,12 @@ def test_residual_diagnostics_matches_cpu_loop():
     vectorized = residual_diagnostics(case.actual, case.predicted, max_lag=12)
     loop = residual_diagnostics_cpu_loop(case.actual, case.predicted, max_lag=12)
 
-    np.testing.assert_allclose(vectorized.metrics, loop.metrics, rtol=2.0e-5, atol=2.0e-4)
-    np.testing.assert_allclose(vectorized.autocorr, loop.autocorr, rtol=2.0e-5, atol=2.0e-4)
+    np.testing.assert_allclose(
+        vectorized.metrics, loop.metrics, rtol=2.0e-5, atol=2.0e-4
+    )
+    np.testing.assert_allclose(
+        vectorized.autocorr, loop.autocorr, rtol=2.0e-5, atol=2.0e-4
+    )
 
 
 def test_residual_diagnostics_known_case():

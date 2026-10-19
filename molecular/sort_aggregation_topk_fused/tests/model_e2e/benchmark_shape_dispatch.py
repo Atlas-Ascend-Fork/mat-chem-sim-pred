@@ -23,7 +23,9 @@ BENCHMARK_VARIANT = "sort_aggregation"
 class SortDispatchContext:
     """Evaluation bundle for synthetic sort dispatch experiments."""
 
-    def __init__(self, arguments, module, custom, official, device, generator, graphs: int):
+    def __init__(
+        self, arguments, module, custom, official, device, generator, graphs: int
+    ):
         self.arguments = arguments
         self.module = module
         self.custom = custom
@@ -74,9 +76,7 @@ def run_case(context: SortDispatchContext):
     baseline_fn = _functools.partial(context.official, features, batch_vec)
     fused_fn = _functools.partial(context.custom, features, graph_ptr, args.top_k)
 
-    baseline_ms, expected = context.module.timed(
-        baseline_fn, args.warmup, args.repeat
-    )
+    baseline_ms, expected = context.module.timed(baseline_fn, args.warmup, args.repeat)
     custom_ms, actual = context.module.timed(fused_fn, args.warmup, args.repeat)
     return {
         "graphs": context.graphs,
@@ -104,7 +104,9 @@ def run_cases(arguments, module):
     rng = torch.Generator().manual_seed(20260801)
     case_records = [
         run_case(
-            SortDispatchContext(arguments, module, custom_op, official_op, dev, rng, n_g)
+            SortDispatchContext(
+                arguments, module, custom_op, official_op, dev, rng, n_g
+            )
         )
         for n_g in arguments.graphs
     ]

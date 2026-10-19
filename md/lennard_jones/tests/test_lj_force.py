@@ -20,19 +20,19 @@ def lj_force_numpy(positions, epsilon, sigma, cutoff):
     energy = 0.0
 
     cutoff_sq = cutoff * cutoff
-    sigma6 = sigma ** 6
-    sigma12 = sigma ** 12
+    sigma6 = sigma**6
+    sigma12 = sigma**12
 
     for i in range(N):
         for j in range(i + 1, N):
             r_vec = positions[i] - positions[j]
-            r_sq = np.sum(r_vec ** 2)
+            r_sq = np.sum(r_vec**2)
 
             if r_sq < cutoff_sq and r_sq > 1e-10:
                 r2_inv = 1.0 / r_sq
-                r6_inv = r2_inv ** 3
+                r6_inv = r2_inv**3
                 sigma6_r6 = sigma6 * r6_inv
-                sigma12_r12 = sigma6_r6 ** 2
+                sigma12_r12 = sigma6_r6**2
 
                 potential = 4.0 * epsilon * (sigma12_r12 - sigma6_r6)
                 energy += potential
@@ -49,6 +49,7 @@ def lj_force_numpy(positions, epsilon, sigma, cutoff):
 # Try to import PyTorch
 try:
     import torch
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -60,7 +61,7 @@ def lj_force_pytorch(positions, epsilon, sigma, cutoff):
     device = positions.device
 
     r_vec = positions.unsqueeze(1) - positions.unsqueeze(0)
-    r_sq = (r_vec ** 2).sum(dim=-1)
+    r_sq = (r_vec**2).sum(dim=-1)
 
     cutoff_sq = cutoff * cutoff
     mask = (r_sq < cutoff_sq) & (r_sq > 1e-10)
@@ -68,12 +69,12 @@ def lj_force_pytorch(positions, epsilon, sigma, cutoff):
 
     r_sq_safe = torch.where(mask, r_sq, torch.ones_like(r_sq))
     r2_inv = 1.0 / r_sq_safe
-    r6_inv = r2_inv ** 3
+    r6_inv = r2_inv**3
 
-    sigma6 = sigma ** 6
-    sigma12 = sigma ** 12
+    sigma6 = sigma**6
+    sigma12 = sigma**12
     sigma6_r6 = sigma6 * r6_inv
-    sigma12_r12 = sigma6_r6 ** 2
+    sigma12_r12 = sigma6_r6**2
 
     potential = 4.0 * epsilon * (sigma12_r12 - sigma6_r6)
     potential = torch.where(mask, potential, torch.zeros_like(potential))
@@ -98,10 +99,7 @@ class TestLJForceCPU:
         cutoff = 10.0
 
         # 放置两个原子，距离约为 sigma
-        positions = np.array([
-            [0.0, 0.0, 0.0],
-            [sigma, 0.0, 0.0]
-        ], dtype=np.float32)
+        positions = np.array([[0.0, 0.0, 0.0], [sigma, 0.0, 0.0]], dtype=np.float32)
 
         forces, energy = lj_force_numpy(positions, epsilon, sigma, cutoff)
 
@@ -120,10 +118,9 @@ class TestLJForceCPU:
         cutoff = 10.0
 
         # 距离小于 sigma，应该是排斥力
-        positions = np.array([
-            [0.0, 0.0, 0.0],
-            [sigma * 0.9, 0.0, 0.0]
-        ], dtype=np.float32)
+        positions = np.array(
+            [[0.0, 0.0, 0.0], [sigma * 0.9, 0.0, 0.0]], dtype=np.float32
+        )
 
         forces, energy = lj_force_numpy(positions, epsilon, sigma, cutoff)
 
@@ -141,10 +138,9 @@ class TestLJForceCPU:
         cutoff = 5.0
 
         # 距离大于 cutoff
-        positions = np.array([
-            [0.0, 0.0, 0.0],
-            [cutoff + 1.0, 0.0, 0.0]
-        ], dtype=np.float32)
+        positions = np.array(
+            [[0.0, 0.0, 0.0], [cutoff + 1.0, 0.0, 0.0]], dtype=np.float32
+        )
 
         forces, energy = lj_force_numpy(positions, epsilon, sigma, cutoff)
 
@@ -208,9 +204,7 @@ class TestLJForcePerformance:
         cutoff = 10.0
 
         np.random.seed(42)
-        positions = torch.from_numpy(
-            np.random.rand(N, 3).astype(np.float32) * 8.0
-        )
+        positions = torch.from_numpy(np.random.rand(N, 3).astype(np.float32) * 8.0)
 
         # 计时 PyTorch 实现
         warmup = 3

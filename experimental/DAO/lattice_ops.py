@@ -13,6 +13,7 @@ import numpy as np
 # Lattice parameters → matrix  (a,b,c,α,β,γ) → [[3,3]]
 # ---------------------------------------------------------------------------
 
+
 @pt.frontend.jit
 def lattice_params_to_matrix(
     lengths: pt.Tensor([pt.DYNAMIC, 3], pt.DT_FP32),
@@ -77,21 +78,30 @@ def lattice_params_to_matrix_single(
     val = pt.clamp(val, -1.0, 1.0)
     gamma_star = pt.arccos(val)
 
-    vec_a = pt.stack([
-        lengths[0] * sin_b,
-        pt.zeros(1, pt.DT_FP32)[0],
-        lengths[0] * cos_b,
-    ], dim=0)
-    vec_b = pt.stack([
-        -lengths[1] * sin_a * pt.cos(gamma_star),
-        lengths[1] * sin_a * pt.sin(gamma_star),
-        lengths[1] * cos_a,
-    ], dim=0)
-    vec_c = pt.stack([
-        pt.zeros(1, pt.DT_FP32)[0],
-        pt.zeros(1, pt.DT_FP32)[0],
-        lengths[2],
-    ], dim=0)
+    vec_a = pt.stack(
+        [
+            lengths[0] * sin_b,
+            pt.zeros(1, pt.DT_FP32)[0],
+            lengths[0] * cos_b,
+        ],
+        dim=0,
+    )
+    vec_b = pt.stack(
+        [
+            -lengths[1] * sin_a * pt.cos(gamma_star),
+            lengths[1] * sin_a * pt.sin(gamma_star),
+            lengths[1] * cos_a,
+        ],
+        dim=0,
+    )
+    vec_c = pt.stack(
+        [
+            pt.zeros(1, pt.DT_FP32)[0],
+            pt.zeros(1, pt.DT_FP32)[0],
+            lengths[2],
+        ],
+        dim=0,
+    )
 
     matrix_out[:] = pt.stack([vec_a, vec_b, vec_c], dim=0)
 
@@ -99,6 +109,7 @@ def lattice_params_to_matrix_single(
 # ---------------------------------------------------------------------------
 # Fractional coordinates → Cartesian coordinates
 # ---------------------------------------------------------------------------
+
 
 @pt.frontend.jit
 def frac_to_cart_coords(
@@ -125,12 +136,13 @@ def frac_to_cart_coords(
             lattice_nodes[idx] = lattices[b]
         offset = offset + n
 
-    cart_out[:] = pt.einsum('bi,bij->bj', frac_coords, lattice_nodes)
+    cart_out[:] = pt.einsum("bi,bij->bj", frac_coords, lattice_nodes)
 
 
 # ---------------------------------------------------------------------------
 # Cartesian coordinates → Fractional coordinates
 # ---------------------------------------------------------------------------
+
 
 @pt.frontend.jit
 def cart_to_frac_coords(
@@ -148,9 +160,11 @@ def cart_to_frac_coords(
     # Using transpose as approximate inverse for orthogonal; for full inverse:
     for b in pt.loop(range(batch_size)):
         m = lattices[b]
-        det = m[0, 0] * (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1]) \
-            - m[0, 1] * (m[1, 0] * m[2, 2] - m[1, 2] * m[2, 0]) \
+        det = (
+            m[0, 0] * (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1])
+            - m[0, 1] * (m[1, 0] * m[2, 2] - m[1, 2] * m[2, 0])
             + m[0, 2] * (m[1, 0] * m[2, 1] - m[1, 1] * m[2, 0])
+        )
         inv_det = pt.reciprocal(det)
         # Adjugate matrix
         inv_lattices[b, 0, 0] = (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1]) * inv_det
@@ -173,7 +187,7 @@ def cart_to_frac_coords(
             inv_lattice_nodes[idx] = inv_lattices[b]
         offset = offset + n
 
-    frac = pt.einsum('bi,bij->bj', cart_coords, inv_lattice_nodes)
+    frac = pt.einsum("bi,bij->bj", cart_coords, inv_lattice_nodes)
     # Wrap to [0, 1)
     frac_out[:] = frac - pt.floor(frac)
 
@@ -181,6 +195,7 @@ def cart_to_frac_coords(
 # ---------------------------------------------------------------------------
 # Volume computation
 # ---------------------------------------------------------------------------
+
 
 @pt.frontend.jit
 def compute_volume(
@@ -191,11 +206,14 @@ def compute_volume(
     a = lattices[:, 0]
     b = lattices[:, 1]
     c = lattices[:, 2]
-    cross = pt.stack([
-        b[:, 1] * c[:, 2] - b[:, 2] * c[:, 1],
-        b[:, 2] * c[:, 0] - b[:, 0] * c[:, 2],
-        b[:, 0] * c[:, 1] - b[:, 1] * c[:, 0],
-    ], dim=-1)
+    cross = pt.stack(
+        [
+            b[:, 1] * c[:, 2] - b[:, 2] * c[:, 1],
+            b[:, 2] * c[:, 0] - b[:, 0] * c[:, 2],
+            b[:, 0] * c[:, 1] - b[:, 1] * c[:, 0],
+        ],
+        dim=-1,
+    )
     vol = pt.abs(pt.sum(a * cross, dim=-1))
     volume_out[:] = vol
 
@@ -203,6 +221,7 @@ def compute_volume(
 # ---------------------------------------------------------------------------
 # NumPy reference (for validation)
 # ---------------------------------------------------------------------------
+
 
 def lattice_params_to_matrix_np(lengths, angles):
     a, b, c = lengths
@@ -215,11 +234,13 @@ def lattice_params_to_matrix_np(lengths, angles):
     gamma_star = np.arccos(val)
 
     vector_a = np.array([a * sin_b, 0.0, a * cos_b])
-    vector_b = np.array([
-        -b * sin_a * np.cos(gamma_star),
-        b * sin_a * np.sin(gamma_star),
-        b * cos_a,
-    ])
+    vector_b = np.array(
+        [
+            -b * sin_a * np.cos(gamma_star),
+            b * sin_a * np.sin(gamma_star),
+            b * cos_a,
+        ]
+    )
     vector_c = np.array([0.0, 0.0, c])
     return np.array([vector_a, vector_b, vector_c])
 
@@ -242,15 +263,16 @@ def compute_volume_np(lattice):
 # Tests
 # ---------------------------------------------------------------------------
 
+
 def test_lattice_params_to_matrix():
     np.random.seed(42)
     for _ in range(10):
         lengths = np.random.uniform(3, 15, 3).astype(np.float32)
         angles = np.random.uniform(50, 130, 3).astype(np.float32)
 
-        l_t = torch.from_numpy(lengths[None]).to('npu')
-        a_t = torch.from_numpy(angles[None]).to('npu')
-        m_out = torch.zeros(1, 3, 3, dtype=torch.float32, device='npu')
+        l_t = torch.from_numpy(lengths[None]).to("npu")
+        a_t = torch.from_numpy(angles[None]).to("npu")
+        m_out = torch.zeros(1, 3, 3, dtype=torch.float32, device="npu")
         lattice_params_to_matrix(l_t, a_t, m_out)
 
         result = m_out.cpu().numpy()[0]
@@ -281,11 +303,11 @@ def test_volume():
     angles = np.array([90.0, 95.0, 90.0], dtype=np.float32)
     lattice = lattice_params_to_matrix_np(lengths, angles)
 
-    l_t = torch.from_numpy(lengths[None]).to('npu')
-    a_t = torch.from_numpy(angles[None]).to('npu')
-    m_out = torch.zeros(1, 3, 3, dtype=torch.float32, device='npu')
+    l_t = torch.from_numpy(lengths[None]).to("npu")
+    a_t = torch.from_numpy(angles[None]).to("npu")
+    m_out = torch.zeros(1, 3, 3, dtype=torch.float32, device="npu")
     lattice_params_to_matrix(l_t, a_t, m_out)
-    v_out = torch.zeros(1, dtype=torch.float32, device='npu')
+    v_out = torch.zeros(1, dtype=torch.float32, device="npu")
     compute_volume(m_out, v_out)
 
     vol_npu = v_out.cpu().item()

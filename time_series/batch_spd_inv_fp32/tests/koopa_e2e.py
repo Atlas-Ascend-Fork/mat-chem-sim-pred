@@ -6,6 +6,7 @@ Koopa's KPLayer solves the underdetermined system x @ K = y via lstsq; on the
 NPU that silently falls back to CPU (1.2-4.3s per call, 3 blocks per forward).
 The custom path keeps everything on-device.
 """
+
 import importlib
 import importlib.util
 import json
@@ -47,9 +48,15 @@ def load_koopa():
 
 def cfg(seq_len, pred_len, enc_in=7):
     return SimpleNamespace(
-        task_name="long_term_forecast", seq_len=seq_len, label_len=48,
-        pred_len=pred_len, enc_in=enc_in, dec_in=enc_in, c_out=enc_in,
-        features="M", target="OT",
+        task_name="long_term_forecast",
+        seq_len=seq_len,
+        label_len=48,
+        pred_len=pred_len,
+        enc_in=enc_in,
+        dec_in=enc_in,
+        c_out=enc_in,
+        features="M",
+        target="OT",
     )
 
 
@@ -83,7 +90,8 @@ def _ff_forward(self, x):
 
 def build_model(KoopaMod, c):
     KoopaMod.Model._get_mask_spectrum = lambda self, configs: torch.arange(
-        max(1, int((configs.seq_len // 2 + 1) * 0.2)))
+        max(1, int((configs.seq_len // 2 + 1) * 0.2))
+    )
     KoopaMod.FourierFilter.forward = _ff_forward
     m = KoopaMod.Model(c).to(DEV).eval()
     return m
@@ -121,24 +129,38 @@ def run(KoopaMod, seq_len, pred_len, B, enc_in=7):
         finally:
             torch.linalg.lstsq = orig
     d = (out_stock - out_custom).abs().max().item()
-    row = {"seq_len": seq_len, "pred_len": pred_len, "B": B, "enc_in": enc_in,
-           "m_snapshots": m, "dynamic_dim": 128,
-           "stock_lstsq_cpu_ms": ms_stock, "custom_ms": ms_custom,
-           "speedup": ms_stock / ms_custom, "max_diff": d}
-    print(f"[e2e] seq{seq_len}/pred{pred_len} B={B} m={m}: stock={ms_stock:.1f}ms "
-          f"custom={ms_custom:.2f}ms speedup={row['speedup']:.0f}x diff={d:.2e}", flush=True)
+    row = {
+        "seq_len": seq_len,
+        "pred_len": pred_len,
+        "B": B,
+        "enc_in": enc_in,
+        "m_snapshots": m,
+        "dynamic_dim": 128,
+        "stock_lstsq_cpu_ms": ms_stock,
+        "custom_ms": ms_custom,
+        "speedup": ms_stock / ms_custom,
+        "max_diff": d,
+    }
+    print(
+        f"[e2e] seq{seq_len}/pred{pred_len} B={B} m={m}: stock={ms_stock:.1f}ms "
+        f"custom={ms_custom:.2f}ms speedup={row['speedup']:.0f}x diff={d:.2e}",
+        flush=True,
+    )
     return row
 
 
 def main():
     KoopaMod = load_koopa()
     rows = []
-    for (seq_len, pred_len, B) in [(336, 96, 32), (720, 96, 32), (512, 96, 16)]:
+    for seq_len, pred_len, B in [(336, 96, 32), (720, 96, 32), (512, 96, 16)]:
         rows.append(run(KoopaMod, seq_len, pred_len, B))
-    res = {"device": "Ascend 910B3 / node202", "model": "Koopa",
-           "note": "stock uses torch.linalg.lstsq (NPU->CPU fallback); custom uses "
-                   "native bmm + BatchSpdInvFp32 Gram inverse, all on-device",
-           "e2e": rows}
+    res = {
+        "device": "Ascend 910B3 / node202",
+        "model": "Koopa",
+        "note": "stock uses torch.linalg.lstsq (NPU->CPU fallback); custom uses "
+        "native bmm + BatchSpdInvFp32 Gram inverse, all on-device",
+        "e2e": rows,
+    }
     out = "/home/ql2025/work/tslib_cann_ops_dev/docs/batch_spd_inv_fp32_e2e_koopa.json"
     with open(out, "w") as f:
         json.dump(res, f, indent=2)

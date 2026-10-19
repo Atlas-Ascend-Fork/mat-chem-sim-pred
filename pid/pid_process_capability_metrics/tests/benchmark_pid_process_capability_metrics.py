@@ -19,4 +19,3 @@ from pid_process_capability_reference import benchmark_reference
 if __name__ == "__main__":
     for config in [(64, 1024), (128, 4096), (512, 4096), (1024, 8192)]:
         print(benchmark_reference(*config))
-

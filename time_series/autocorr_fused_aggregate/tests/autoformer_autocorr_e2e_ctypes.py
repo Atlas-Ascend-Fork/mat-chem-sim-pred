@@ -24,25 +24,51 @@ EMBED = D_MODEL // HEADS
 TOP_K = 3
 MOVING_AVG = 25
 ROOT = "/home/ql2025/work/tslib_cann_ops_dev/build/msopgen_autocorr_fused_aggregate/build_out"
-DEFAULT_DATA = "/home/ql2025/work/tslib_cann_ops_dev/data/mamba_forecasting_e2e_mto_4096.csv"
-DEFAULT_RESULT = "/home/ql2025/work/tslib_cann_ops_dev/docs/autocorr_autoformer_e2e_results.json"
+DEFAULT_DATA = (
+    "/home/ql2025/work/tslib_cann_ops_dev/data/mamba_forecasting_e2e_mto_4096.csv"
+)
+DEFAULT_RESULT = (
+    "/home/ql2025/work/tslib_cann_ops_dev/docs/autocorr_autoformer_e2e_results.json"
+)
 
 
 def init_custom_op():
     torch.empty(1, device=DEV)
     torch.npu.synchronize()
     ctypes.CDLL(f"{ROOT}/autogen/libascend_all_ops.so", mode=ctypes.RTLD_GLOBAL)
-    acl = ctypes.CDLL("/usr/local/Ascend/ascend-toolkit/latest/lib64/libnnopbase.so", mode=ctypes.RTLD_GLOBAL)
+    acl = ctypes.CDLL(
+        "/usr/local/Ascend/ascend-toolkit/latest/lib64/libnnopbase.so",
+        mode=ctypes.RTLD_GLOBAL,
+    )
     op = ctypes.CDLL(f"{ROOT}/op_api/lib/libcust_opapi.so", mode=ctypes.RTLD_GLOBAL)
-    acl.aclCreateTensor.argtypes = [POINTER(c_int64), c_uint64, c_int, POINTER(c_int64), c_int64, c_int, POINTER(c_int64), c_uint64, c_void_p]
+    acl.aclCreateTensor.argtypes = [
+        POINTER(c_int64),
+        c_uint64,
+        c_int,
+        POINTER(c_int64),
+        c_int64,
+        c_int,
+        POINTER(c_int64),
+        c_uint64,
+        c_void_p,
+    ]
     acl.aclCreateTensor.restype = c_void_p
     acl.aclDestroyTensor.argtypes = [c_void_p]
     acl.aclDestroyTensor.restype = c_int
-    op.aclnnAutoCorrFusedAggregateGetWorkspaceSize.argtypes = [c_void_p, c_void_p, c_void_p, c_int64, c_void_p, POINTER(c_uint64), POINTER(c_void_p)]
+    op.aclnnAutoCorrFusedAggregateGetWorkspaceSize.argtypes = [
+        c_void_p,
+        c_void_p,
+        c_void_p,
+        c_int64,
+        c_void_p,
+        POINTER(c_uint64),
+        POINTER(c_void_p),
+    ]
     op.aclnnAutoCorrFusedAggregateGetWorkspaceSize.restype = c_int
     op.aclnnAutoCorrFusedAggregate.argtypes = [c_void_p, c_uint64, c_void_p, c_void_p]
     op.aclnnAutoCorrFusedAggregate.restype = c_int
     return acl, op
+
 
 _ACL, _OP = init_custom_op()
 ACL_FLOAT = 0
@@ -58,7 +84,17 @@ def _acl_tensor(t):
         s *= d
     dims_arr = (c_int64 * len(dims))(*dims)
     strides_arr = (c_int64 * len(strides))(*strides)
-    ptr = _ACL.aclCreateTensor(dims_arr, len(dims), ACL_FLOAT, strides_arr, 0, ACL_FORMAT_ND, dims_arr, len(dims), c_void_p(t.data_ptr()))
+    ptr = _ACL.aclCreateTensor(
+        dims_arr,
+        len(dims),
+        ACL_FLOAT,
+        strides_arr,
+        0,
+        ACL_FORMAT_ND,
+        dims_arr,
+        len(dims),
+        c_void_p(t.data_ptr()),
+    )
     if not ptr:
         raise RuntimeError("aclCreateTensor failed")
     return ptr
@@ -70,11 +106,28 @@ def autocorr_custom(q, k, v, top_k=TOP_K):
     desc = [_acl_tensor(x) for x in (q, k, v, out)]
     workspace_size = c_uint64(0)
     executor = c_void_p()
-    ret = _OP.aclnnAutoCorrFusedAggregateGetWorkspaceSize(desc[0], desc[1], desc[2], int(top_k), desc[3], byref(workspace_size), byref(executor))
+    ret = _OP.aclnnAutoCorrFusedAggregateGetWorkspaceSize(
+        desc[0],
+        desc[1],
+        desc[2],
+        int(top_k),
+        desc[3],
+        byref(workspace_size),
+        byref(executor),
+    )
     if ret:
         raise RuntimeError(f"aclnnAutoCorrFusedAggregateGetWorkspaceSize ret={ret}")
-    workspace = torch.empty((int(workspace_size.value),), dtype=torch.uint8, device=q.device) if workspace_size.value else None
-    ret = _OP.aclnnAutoCorrFusedAggregate(c_void_p(0 if workspace is None else workspace.data_ptr()), workspace_size.value, executor, c_void_p(torch.npu.current_stream().npu_stream))
+    workspace = (
+        torch.empty((int(workspace_size.value),), dtype=torch.uint8, device=q.device)
+        if workspace_size.value
+        else None
+    )
+    ret = _OP.aclnnAutoCorrFusedAggregate(
+        c_void_p(0 if workspace is None else workspace.data_ptr()),
+        workspace_size.value,
+        executor,
+        c_void_p(torch.npu.current_stream().npu_stream),
+    )
     if ret:
         raise RuntimeError(f"aclnnAutoCorrFusedAggregate ret={ret}")
     torch.npu.synchronize()
@@ -91,7 +144,9 @@ def autocorr_framework(q, k, v, top_k=TOP_K):
     score = torch.stack(scores, dim=-1)
     vals, idx = torch.topk(score, k=top_k, dim=-1)
     weights = F.softmax(vals, dim=-1)
-    rolled = torch.stack([torch.roll(v, shifts=-lag, dims=-1) for lag in range(length)], dim=-2)
+    rolled = torch.stack(
+        [torch.roll(v, shifts=-lag, dims=-1) for lag in range(length)], dim=-2
+    )
     gather_idx = idx[..., :, None].expand(*idx.shape, length)
     picked = torch.gather(rolled, dim=-2, index=gather_idx)
     return (picked * weights[..., :, None]).sum(dim=-2)
@@ -130,7 +185,9 @@ def decompose(x):
     # x [B,L,D]
     xp = x.transpose(1, 2)
     pad = MOVING_AVG // 2
-    trend = F.avg_pool1d(F.pad(xp, (pad, pad), mode="replicate"), kernel_size=MOVING_AVG, stride=1)
+    trend = F.avg_pool1d(
+        F.pad(xp, (pad, pad), mode="replicate"), kernel_size=MOVING_AVG, stride=1
+    )
     trend = trend[..., : x.shape[1]].transpose(1, 2).contiguous()
     season = x - trend
     return season, trend
@@ -141,21 +198,35 @@ def autoformer_block(x, w, autocorr_impl, timing=None):
     q = mark("q_proj", timing, lambda: F.linear(season, w["q_proj"]))
     k = mark("k_proj", timing, lambda: F.linear(season, w["k_proj"]))
     v = mark("v_proj", timing, lambda: F.linear(season, w["v_proj"]))
+
     def to_bhel(t):
-        return t.view(t.shape[0], t.shape[1], HEADS, EMBED).permute(0, 2, 3, 1).contiguous()
+        return (
+            t.view(t.shape[0], t.shape[1], HEADS, EMBED)
+            .permute(0, 2, 3, 1)
+            .contiguous()
+        )
+
     qh, kh, vh = to_bhel(q), to_bhel(k), to_bhel(v)
     ah = mark("autocorr_aggregate", timing, lambda: autocorr_impl(qh, kh, vh, TOP_K))
     a = ah.permute(0, 3, 1, 2).contiguous().view(x.shape[0], x.shape[1], D_MODEL)
     y = mark("out_proj", timing, lambda: F.linear(a, w["out_proj"]))
     h = mark("residual_norm", timing, lambda: F.layer_norm(x + y + trend, (D_MODEL,)))
-    ff = mark("ffn", timing, lambda: F.linear(F.gelu(F.linear(h, w["ff1"], w["ff1_b"])), w["ff2"], w["ff2_b"]))
+    ff = mark(
+        "ffn",
+        timing,
+        lambda: F.linear(
+            F.gelu(F.linear(h, w["ff1"], w["ff1_b"])), w["ff2"], w["ff2_b"]
+        ),
+    )
     return mark("ffn_residual_norm", timing, lambda: F.layer_norm(h + ff, (D_MODEL,)))
 
 
 def forecast_forward(x_raw, w, features, autocorr_impl, timing=None):
     x = mark("input_projection", timing, lambda: F.linear(x_raw, w["input_proj"]))
     h = autoformer_block(x, w, autocorr_impl, timing)
-    pred_flat = mark("forecast_head", timing, lambda: F.linear(h[:, -1, :], w["head_w"], w["head_b"]))
+    pred_flat = mark(
+        "forecast_head", timing, lambda: F.linear(h[:, -1, :], w["head_w"], w["head_b"])
+    )
     return pred_flat.view(x_raw.shape[0], PRED_LEN, features)
 
 
@@ -174,7 +245,11 @@ def load_windows(path, features, windows):
     values = np.nan_to_num(values, nan=0.0, posinf=8.0, neginf=-8.0).astype(np.float32)
     values = np.clip(values, -8.0, 8.0).astype(np.float32)
     max_start = len(values) - need
-    starts = np.linspace(0, max_start, num=windows, dtype=np.int64) if windows > 1 else np.array([0], dtype=np.int64)
+    starts = (
+        np.linspace(0, max_start, num=windows, dtype=np.int64)
+        if windows > 1
+        else np.array([0], dtype=np.int64)
+    )
     xs, ys = [], []
     for s in starts:
         xs.append(torch.from_numpy(values[s : s + SEQ_LEN]).unsqueeze(0).to(DEV))
@@ -255,8 +330,24 @@ def main():
     torch.manual_seed(0)
     data = load_windows(args.data, args.features, args.windows)
     w = make_weights(args.features, DEV)
-    framework = evaluate("framework_naive_autocorr", data["xs"], data["ys"], w, args.features, autocorr_framework, args.repeat)
-    custom = evaluate("custom_auto_corr_fused_aggregate", data["xs"], data["ys"], w, args.features, autocorr_custom, args.repeat)
+    framework = evaluate(
+        "framework_naive_autocorr",
+        data["xs"],
+        data["ys"],
+        w,
+        args.features,
+        autocorr_framework,
+        args.repeat,
+    )
+    custom = evaluate(
+        "custom_auto_corr_fused_aggregate",
+        data["xs"],
+        data["ys"],
+        w,
+        args.features,
+        autocorr_custom,
+        args.repeat,
+    )
     pred_diff = (framework["predictions"].float() - custom["predictions"].float()).abs()
     ft = framework["timing_per_window_ms"]
     ct = custom["timing_per_window_ms"]
@@ -267,25 +358,43 @@ def main():
         "custom_ops_used": ["AutoCorrFusedAggregate"],
         "autocorr_calls_per_forward": 1,
         "dataset": {k: v for k, v in data.items() if k not in ("xs", "ys")},
-        "shape": {"B": 1, "seq_len": SEQ_LEN, "pred_len": PRED_LEN, "input_features": args.features, "D_MODEL": D_MODEL, "HEADS": HEADS, "EMBED": EMBED, "TOP_K": TOP_K, "eval_windows": args.windows, "repeat": args.repeat},
+        "shape": {
+            "B": 1,
+            "seq_len": SEQ_LEN,
+            "pred_len": PRED_LEN,
+            "input_features": args.features,
+            "D_MODEL": D_MODEL,
+            "HEADS": HEADS,
+            "EMBED": EMBED,
+            "TOP_K": TOP_K,
+            "eval_windows": args.windows,
+            "repeat": args.repeat,
+        },
         "framework_naive_autocorr": strip(framework),
         "custom_auto_corr_fused_aggregate": strip(custom),
         "comparison": {
-            "validation_loop_speedup": framework["validation_loop_mean_ms"] / custom["validation_loop_mean_ms"],
-            "per_window_speedup": framework["per_window_mean_ms"] / custom["per_window_mean_ms"],
+            "validation_loop_speedup": framework["validation_loop_mean_ms"]
+            / custom["validation_loop_mean_ms"],
+            "per_window_speedup": framework["per_window_mean_ms"]
+            / custom["per_window_mean_ms"],
             "autocorr_speedup": ft["autocorr_aggregate"] / ct["autocorr_aggregate"],
             "mse_abs_diff": abs(framework["mse"] - custom["mse"]),
             "mae_abs_diff": abs(framework["mae"] - custom["mae"]),
             "prediction_max_abs_diff": float(pred_diff.max().item()),
             "prediction_mean_abs_diff": float(pred_diff.mean().item()),
-            "framework_autocorr_share_pct": 100.0 * ft["autocorr_aggregate"] / sum(ft.values()),
-            "custom_autocorr_share_pct": 100.0 * ct["autocorr_aggregate"] / sum(ct.values()),
+            "framework_autocorr_share_pct": 100.0
+            * ft["autocorr_aggregate"]
+            / sum(ft.values()),
+            "custom_autocorr_share_pct": 100.0
+            * ct["autocorr_aggregate"]
+            / sum(ct.values()),
         },
     }
     os.makedirs(os.path.dirname(args.result_json), exist_ok=True)
     with open(args.result_json, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
     print(json.dumps(result, indent=2))
+
 
 if __name__ == "__main__":
     main()

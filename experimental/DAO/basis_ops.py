@@ -16,6 +16,7 @@ import numpy as np
 # SinusoidsEmbedding  --  DAO utils.py
 # ---------------------------------------------------------------------------
 
+
 def SinusoidsEmbedding(
     x: pt.Tensor([pt.DYNAMIC, 3], pt.DT_FP32),
     out: pt.Tensor([pt.DYNAMIC, pt.DYNAMIC], pt.DT_FP32),
@@ -44,6 +45,7 @@ def SinusoidsEmbedding(
 # ---------------------------------------------------------------------------
 # BesselBasisLayer  --  PyG's BesselBasisLayer
 # ---------------------------------------------------------------------------
+
 
 @pt.frontend.jit
 def BesselBasisLayer(
@@ -75,7 +77,7 @@ def BesselBasisLayer(
 
     p = pt.cast(envelope_exponent, pt.DT_FP32)
     r_c = d / cutoff
-    env = 1.0 - (p + 1.0) * (r_c ** p) + p * (r_c ** (p + 1.0))
+    env = 1.0 - (p + 1.0) * (r_c**p) + p * (r_c ** (p + 1.0))
     env = pt.where(r_c < 1.0, env, pt.zeros_like(env))
 
     out[:] = bessel * env
@@ -84,6 +86,7 @@ def BesselBasisLayer(
 # ---------------------------------------------------------------------------
 # Legendre polynomial helper  --  P_l(x) via recurrence
 # ---------------------------------------------------------------------------
+
 
 @pt.frontend.jit
 def legende_poly(
@@ -116,6 +119,7 @@ def legende_poly(
 # Uses Legendre P_l(cos theta) as spherical harmonics (m=0)
 # combined with Bessel radial basis via outer product.
 # ---------------------------------------------------------------------------
+
 
 def SphericalBasisLayer(
     distances: pt.Tensor([pt.DYNAMIC], pt.DT_FP32),
@@ -153,6 +157,7 @@ def SphericalBasisLayer(
 # NumPy reference implementations  (for validation)
 # ---------------------------------------------------------------------------
 
+
 def sinusoids_embedding_np(x, n_frequencies):
     N = x.shape[0]
     freqs = 2 * np.pi * np.arange(n_frequencies, dtype=np.float32)
@@ -176,7 +181,7 @@ def bessel_basis_np(distances, num_radial, cutoff, envelope_exponent=5):
 
     p = envelope_exponent
     r_c = d / cutoff
-    env = 1.0 - (p + 1.0) * (r_c ** p) + p * (r_c ** (p + 1.0))
+    env = 1.0 - (p + 1.0) * (r_c**p) + p * (r_c ** (p + 1.0))
     env = np.where(r_c < 1.0, env, 0.0)
 
     return bessel * env
@@ -189,12 +194,15 @@ def legende_poly_np(x, l_max):
     if l_max >= 1:
         out[:, 1] = x
     for l in range(1, l_max):
-        out[:, l + 1] = ((2.0 * l + 1.0) * x * out[:, l] - l * out[:, l - 1]) / (l + 1.0)
+        out[:, l + 1] = ((2.0 * l + 1.0) * x * out[:, l] - l * out[:, l - 1]) / (
+            l + 1.0
+        )
     return out
 
 
-def spherical_basis_np(distances, angles, num_spherical, num_radial,
-                        cutoff, envelope_exponent=5):
+def spherical_basis_np(
+    distances, angles, num_spherical, num_radial, cutoff, envelope_exponent=5
+):
     radial = bessel_basis_np(distances, num_radial, cutoff, envelope_exponent)
     cos_theta = np.cos(angles)
     l_max = num_spherical - 1
@@ -207,15 +215,17 @@ def spherical_basis_np(distances, angles, num_spherical, num_radial,
 # Tests
 # ---------------------------------------------------------------------------
 
+
 def test_sinusoids_embedding():
     import torch
+
     np.random.seed(42)
     N, n_freqs = 8, 4
     x = np.random.randn(N, 3).astype(np.float32)
     expected = sinusoids_embedding_np(x, n_freqs)
 
-    x_t = torch.from_numpy(x).to('npu')
-    out_t = torch.zeros(N, n_freqs * 6, dtype=torch.float32, device='npu')
+    x_t = torch.from_numpy(x).to("npu")
+    out_t = torch.zeros(N, n_freqs * 6, dtype=torch.float32, device="npu")
     SinusoidsEmbedding(x_t, out_t, n_freqs)
     result = out_t.cpu().numpy()
     err = np.abs(result - expected).max()
@@ -225,13 +235,14 @@ def test_sinusoids_embedding():
 
 def test_bessel_basis():
     import torch
+
     np.random.seed(42)
     E, num_radial, cutoff, env_exp = 32, 6, 5.0, 5
     distances = np.random.uniform(0.1, 5.0, E).astype(np.float32)
     expected = bessel_basis_np(distances, num_radial, cutoff, env_exp)
 
-    d_t = torch.from_numpy(distances).to('npu')
-    out_t = torch.zeros(E, num_radial, dtype=torch.float32, device='npu')
+    d_t = torch.from_numpy(distances).to("npu")
+    out_t = torch.zeros(E, num_radial, dtype=torch.float32, device="npu")
     BesselBasisLayer(d_t, out_t, num_radial, cutoff, env_exp)
     result = out_t.cpu().numpy()
     err = np.abs(result - expected).max()
@@ -241,13 +252,14 @@ def test_bessel_basis():
 
 def test_legende_poly():
     import torch
+
     np.random.seed(42)
     N, l_max = 16, 5
     x = np.random.uniform(-1, 1, N).astype(np.float32)
     expected = legende_poly_np(x, l_max)
 
-    x_t = torch.from_numpy(x).to('npu')
-    out_t = torch.zeros(N, l_max + 1, dtype=torch.float32, device='npu')
+    x_t = torch.from_numpy(x).to("npu")
+    out_t = torch.zeros(N, l_max + 1, dtype=torch.float32, device="npu")
     legende_poly(x_t, out_t, l_max)
     result = out_t.cpu().numpy()
     err = np.abs(result - expected).max()
@@ -257,17 +269,16 @@ def test_legende_poly():
 
 def test_spherical_basis():
     import torch
+
     np.random.seed(42)
     T, num_sph, num_rad, cutoff, env_exp = 16, 4, 6, 5.0, 5
     distances = np.random.uniform(0.1, 5.0, T).astype(np.float32)
     angles = np.random.uniform(0, np.pi, T).astype(np.float32)
-    expected = spherical_basis_np(distances, angles, num_sph, num_rad,
-                                   cutoff, env_exp)
+    expected = spherical_basis_np(distances, angles, num_sph, num_rad, cutoff, env_exp)
 
-    d_t = torch.from_numpy(distances).to('npu')
-    a_t = torch.from_numpy(angles).to('npu')
-    out_t = torch.zeros(T, num_sph * num_rad, dtype=torch.float32,
-                         device='npu')
+    d_t = torch.from_numpy(distances).to("npu")
+    a_t = torch.from_numpy(angles).to("npu")
+    out_t = torch.zeros(T, num_sph * num_rad, dtype=torch.float32, device="npu")
     SphericalBasisLayer(d_t, a_t, out_t, num_sph, num_rad, cutoff, env_exp)
     result = out_t.cpu().numpy()
     err = np.abs(result - expected).max()

@@ -13,6 +13,7 @@ import numpy as np
 # Dense all-pairs PBC distance matrix  (27 periodic images)
 # ---------------------------------------------------------------------------
 
+
 @pt.frontend.jit
 def get_pbc_distances(
     frac_coords: pt.Tensor([pt.DYNAMIC, 3], pt.DT_FP32),
@@ -43,7 +44,7 @@ def get_pbc_distances(
         offset = offset + n
 
     # frac --> cart
-    cart = pt.einsum('bi,bij->bj', frac_coords, lattice_nodes)
+    cart = pt.einsum("bi,bij->bj", frac_coords, lattice_nodes)
 
     # 27 PBC offsets in fractional space  [27, 3]
     o = pt.cast(pt.arange(3, pt.DT_INT32), pt.DT_FP32) - 1.0
@@ -61,7 +62,7 @@ def get_pbc_distances(
     # Cartesian offset for each atom  [total_atoms, 27, 3]
     offset_cart = pt.zeros([total_atoms, 27, 3], pt.DT_FP32)
     for i in pt.loop(range(total_atoms)):
-        offset_cart[i] = pt.einsum('nk,kl->nl', offset_frac, lattice_nodes[i])
+        offset_cart[i] = pt.einsum("nk,kl->nl", offset_frac, lattice_nodes[i])
 
     # Pairwise distances with nearest-image convention
     for i in pt.loop(range(total_atoms)):
@@ -70,10 +71,10 @@ def get_pbc_distances(
         for j in pt.loop(range(total_atoms)):
             diff = ci - cart[j]
             vecs = diff + oi
-            sq = pt.sum(vecs ** 2, dim=-1)
+            sq = pt.sum(vecs**2, dim=-1)
             min_sq = pt.min(sq, dim=0)
             mask = pt.cast(sq == min_sq, pt.DT_FP32)
-            min_vec = pt.einsum('k,kl->l', mask, vecs) / pt.sum(mask)
+            min_vec = pt.einsum("k,kl->l", mask, vecs) / pt.sum(mask)
             dist_matrix_out[i, j] = pt.sqrt(min_sq)
             vec_matrix_out[i, j] = min_vec
 
@@ -107,20 +108,21 @@ def min_distance_sqr_pbc(
     oz = pt.broadcast_to(oz, (3, 3, 3))
     oz = pt.reshape(oz, (27,))
     offset_frac = pt.stack([ox, oy, oz], dim=-1)
-    offset_cart = pt.einsum('nk,kl->nl', offset_frac, lattice)
+    offset_cart = pt.einsum("nk,kl->nl", offset_frac, lattice)
 
     for i in pt.loop(range(N)):
         ci = coords_a[i]
         for j in pt.loop(range(M)):
             diff = ci - coords_b[j]
             vecs = diff + offset_cart
-            sq = pt.sum(vecs ** 2, dim=-1)
+            sq = pt.sum(vecs**2, dim=-1)
             dist_sqr_out[i, j] = pt.min(sq, dim=0)
 
 
 # ---------------------------------------------------------------------------
 # NumPy reference (for validation)
 # ---------------------------------------------------------------------------
+
 
 def get_pbc_distances_np(frac_coords, lattice, num_atoms=None):
     """NumPy reference for get_pbc_distances."""
@@ -142,7 +144,7 @@ def get_pbc_distances_np(frac_coords, lattice, num_atoms=None):
         for j in range(N):
             diff = cart[i] - cart[j]
             vecs = diff + offsets_cart
-            sq = np.sum(vecs ** 2, axis=-1)
+            sq = np.sum(vecs**2, axis=-1)
             idx = np.argmin(sq)
             dist_matrix[i, j] = np.sqrt(sq[idx])
             vec_matrix[i, j] = vecs[idx]
@@ -167,7 +169,7 @@ def min_distance_sqr_pbc_np(coords_a, coords_b, lattice):
         for j in range(M):
             diff = coords_a[i] - coords_b[j]
             vecs = diff + offsets_cart
-            sq = np.sum(vecs ** 2, axis=-1)
+            sq = np.sum(vecs**2, axis=-1)
             result[i, j] = np.min(sq)
 
     return result
@@ -177,21 +179,25 @@ def min_distance_sqr_pbc_np(coords_a, coords_b, lattice):
 # Tests
 # ---------------------------------------------------------------------------
 
+
 def test_get_pbc_distances():
     np.random.seed(42)
     N = 8
-    lattice = np.array([
-        [5.0, 0.0, 0.0],
-        [0.0, 5.0, 0.0],
-        [0.0, 0.0, 5.0],
-    ], dtype=np.float32)
+    lattice = np.array(
+        [
+            [5.0, 0.0, 0.0],
+            [0.0, 5.0, 0.0],
+            [0.0, 0.0, 5.0],
+        ],
+        dtype=np.float32,
+    )
     frac = np.random.rand(N, 3).astype(np.float32)
 
-    f_t = torch.from_numpy(frac).to('npu')
-    l_t = torch.from_numpy(lattice[None]).to('npu')
-    na_t = torch.tensor([N], dtype=torch.int32, device='npu')
-    d_out = torch.zeros(N, N, dtype=torch.float32, device='npu')
-    v_out = torch.zeros(N, N, 3, dtype=torch.float32, device='npu')
+    f_t = torch.from_numpy(frac).to("npu")
+    l_t = torch.from_numpy(lattice[None]).to("npu")
+    na_t = torch.tensor([N], dtype=torch.int32, device="npu")
+    d_out = torch.zeros(N, N, dtype=torch.float32, device="npu")
+    v_out = torch.zeros(N, N, 3, dtype=torch.float32, device="npu")
 
     get_pbc_distances(f_t, l_t, na_t, d_out, v_out)
 
@@ -209,19 +215,22 @@ def test_get_pbc_distances():
 
 def test_min_distance_sqr_pbc():
     np.random.seed(42)
-    lattice = np.array([
-        [5.0, 0.0, 0.0],
-        [1.0, 5.0, 0.0],
-        [0.0, 0.0, 5.0],
-    ], dtype=np.float32)
+    lattice = np.array(
+        [
+            [5.0, 0.0, 0.0],
+            [1.0, 5.0, 0.0],
+            [0.0, 0.0, 5.0],
+        ],
+        dtype=np.float32,
+    )
     N, M = 6, 4
     coords_a = np.random.randn(N, 3).astype(np.float32) * 2.0
     coords_b = np.random.randn(M, 3).astype(np.float32) * 2.0
 
-    a_t = torch.from_numpy(coords_a).to('npu')
-    b_t = torch.from_numpy(coords_b).to('npu')
-    l_t = torch.from_numpy(lattice).to('npu')
-    d_out = torch.zeros(N, M, dtype=torch.float32, device='npu')
+    a_t = torch.from_numpy(coords_a).to("npu")
+    b_t = torch.from_numpy(coords_b).to("npu")
+    l_t = torch.from_numpy(lattice).to("npu")
+    d_out = torch.zeros(N, M, dtype=torch.float32, device="npu")
 
     min_distance_sqr_pbc(a_t, b_t, l_t, d_out)
 

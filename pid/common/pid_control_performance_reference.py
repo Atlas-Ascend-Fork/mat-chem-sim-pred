@@ -50,13 +50,17 @@ class ControlPerformanceCase:
     mv_variance: np.ndarray
 
 
-def make_control_performance_case(batch: int = 128, n: int = 4096, seed: int = 2027) -> ControlPerformanceCase:
+def make_control_performance_case(
+    batch: int = 128, n: int = 4096, seed: int = 2027
+) -> ControlPerformanceCase:
     rng = np.random.default_rng(seed)
     t = np.linspace(0.0, 1.0, n, dtype=np.float32)[None, :]
     loop = np.arange(batch, dtype=np.float32)[:, None]
     sp = 50.0 + 0.35 * np.sin(2.0 * np.pi * (t * (1.0 + (loop % 5.0) * 0.05)))
     drift = -0.25 + 0.5 * loop / max(1, batch - 1)
-    oscillation = 0.6 * np.sin(2.0 * np.pi * (t * (2.0 + (loop % 7.0) * 0.03) + loop * 0.013))
+    oscillation = 0.6 * np.sin(
+        2.0 * np.pi * (t * (2.0 + (loop % 7.0) * 0.03) + loop * 0.013)
+    )
     noise = rng.normal(loc=0.0, scale=0.08, size=(batch, n)).astype(np.float32)
     pv = sp + drift + oscillation + noise
     if batch > 0 and n >= 16:
@@ -66,7 +70,9 @@ def make_control_performance_case(batch: int = 128, n: int = 4096, seed: int = 2
     lsl = np.full(batch, 47.0, dtype=np.float32)
     usl = np.full(batch, 53.0, dtype=np.float32)
     mv_variance = np.full(batch, 0.08, dtype=np.float32)
-    return ControlPerformanceCase(pv.astype(np.float32), sp.astype(np.float32), lsl, usl, mv_variance)
+    return ControlPerformanceCase(
+        pv.astype(np.float32), sp.astype(np.float32), lsl, usl, mv_variance
+    )
 
 
 def control_performance_metrics(
@@ -85,7 +91,11 @@ def control_performance_metrics(
     mv_variance = np.asarray(mv_variance, dtype=np.float32)
     if pv.ndim != 2 or sp.shape != pv.shape:
         raise ValueError("pv and sp must have shape [batch, n]")
-    if lsl.shape != (pv.shape[0],) or usl.shape != (pv.shape[0],) or mv_variance.shape != (pv.shape[0],):
+    if (
+        lsl.shape != (pv.shape[0],)
+        or usl.shape != (pv.shape[0],)
+        or mv_variance.shape != (pv.shape[0],)
+    ):
         raise ValueError("lsl/usl/mv_variance must have shape [batch]")
 
     batch, n = pv.shape
@@ -119,8 +129,12 @@ def control_performance_metrics(
     negative_deviation = np.maximum(sp - pv, 0.0)
     unsettled = abs_error > np.float32(settle_band)
     any_unsettled = unsettled.any(axis=1)
-    last_unsettled = np.where(any_unsettled, n - 1 - np.argmax(unsettled[:, ::-1], axis=1), -1)
-    settling_time = np.where(any_unsettled, (last_unsettled + 1).astype(np.float32) * sample_interval, 0.0)
+    last_unsettled = np.where(
+        any_unsettled, n - 1 - np.argmax(unsettled[:, ::-1], axis=1), -1
+    )
+    settling_time = np.where(
+        any_unsettled, (last_unsettled + 1).astype(np.float32) * sample_interval, 0.0
+    )
     harris = np.clip(mv_variance / np.maximum(var_population, eps), 0.0, 1.0)
 
     metrics[:, 0] = mean
@@ -236,13 +250,17 @@ def benchmark_reference(batch: int, n: int, iters: int = 20) -> dict[str, float]
     control_performance_metrics(case.pv, case.sp, case.lsl, case.usl, case.mv_variance)
     start = time.perf_counter()
     for _ in range(iters):
-        control_performance_metrics(case.pv, case.sp, case.lsl, case.usl, case.mv_variance)
+        control_performance_metrics(
+            case.pv, case.sp, case.lsl, case.usl, case.mv_variance
+        )
     numpy_ms = (time.perf_counter() - start) * 1000.0 / iters
 
     loop_iters = max(1, min(3, iters))
     start = time.perf_counter()
     for _ in range(loop_iters):
-        control_performance_metrics_cpu_loop(case.pv, case.sp, case.lsl, case.usl, case.mv_variance)
+        control_performance_metrics_cpu_loop(
+            case.pv, case.sp, case.lsl, case.usl, case.mv_variance
+        )
     cpu_loop_ms = (time.perf_counter() - start) * 1000.0 / loop_iters
     return {
         "batch": batch,

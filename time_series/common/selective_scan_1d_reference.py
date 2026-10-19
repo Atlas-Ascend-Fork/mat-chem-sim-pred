@@ -78,5 +78,7 @@ def selective_scan_1d(
         decay = np.exp(delta[:, t, :, None] * a[None, :, :]).astype(np.float32)
         update = delta[:, t, :, None] * b[:, t, None, :] * u[:, t, :, None]
         state_value = decay * state_value + update
-        out[:, t, :] = np.sum(state_value * c[:, t, None, :], axis=2) + u[:, t, :] * d[None, :]
+        out[:, t, :] = (
+            np.sum(state_value * c[:, t, None, :], axis=2) + u[:, t, :] * d[None, :]
+        )
     return out.astype(np.float32)

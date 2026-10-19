@@ -75,9 +75,15 @@ def windowed_residual_diagnostics(
     stride: int = 128,
     max_lag: int = 16,
 ) -> WindowedResidualDiagnosticsResult:
-    actual, predicted = _validate_inputs(actual, predicted, window_size, stride, max_lag)
-    actual_windows = sliding_window_view(actual, window_shape=window_size, axis=1)[:, ::stride, :]
-    predicted_windows = sliding_window_view(predicted, window_shape=window_size, axis=1)[:, ::stride, :]
+    actual, predicted = _validate_inputs(
+        actual, predicted, window_size, stride, max_lag
+    )
+    actual_windows = sliding_window_view(actual, window_shape=window_size, axis=1)[
+        :, ::stride, :
+    ]
+    predicted_windows = sliding_window_view(
+        predicted, window_shape=window_size, axis=1
+    )[:, ::stride, :]
     batch, num_windows, _ = actual_windows.shape
 
     flat_actual = actual_windows.reshape(batch * num_windows, window_size)
@@ -85,7 +91,9 @@ def windowed_residual_diagnostics(
     flat_result = residual_diagnostics(flat_actual, flat_predicted, max_lag=max_lag)
     return WindowedResidualDiagnosticsResult(
         metrics=flat_result.metrics.reshape(batch, num_windows, len(METRIC_NAMES)),
-        autocorr=flat_result.autocorr.reshape(batch, num_windows, flat_result.autocorr.shape[1]),
+        autocorr=flat_result.autocorr.reshape(
+            batch, num_windows, flat_result.autocorr.shape[1]
+        ),
     )
 
 
@@ -96,7 +104,9 @@ def windowed_residual_diagnostics_cpu_loop(
     stride: int = 128,
     max_lag: int = 16,
 ) -> WindowedResidualDiagnosticsResult:
-    actual, predicted = _validate_inputs(actual, predicted, window_size, stride, max_lag)
+    actual, predicted = _validate_inputs(
+        actual, predicted, window_size, stride, max_lag
+    )
     batch, n = actual.shape
     num_windows = 1 + (n - window_size) // stride
     max_lag = min(max_lag, max(1, window_size - 1))

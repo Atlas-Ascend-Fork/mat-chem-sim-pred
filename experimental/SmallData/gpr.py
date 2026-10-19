@@ -23,6 +23,7 @@ from .kernels import Kernel, RBFKernel
 # 高斯过程回归
 # ============================================================================
 
+
 class GaussianProcessRegressor(nn.Module):
     """
     Exact Gaussian Process Regression.
@@ -33,8 +34,12 @@ class GaussianProcessRegressor(nn.Module):
         optimize_noise: Whether to optimize the noise parameter.
     """
 
-    def __init__(self, kernel: Kernel = None, noise_scale: float = 0.1,
-                 optimize_noise: bool = True):
+    def __init__(
+        self,
+        kernel: Kernel = None,
+        noise_scale: float = 0.1,
+        optimize_noise: bool = True,
+    ):
         super().__init__()
         self.kernel = kernel or RBFKernel()
         self.log_noise = nn.Parameter(
@@ -62,7 +67,7 @@ class GaussianProcessRegressor(nn.Module):
 
         n = x.shape[0]
         K = self.kernel(x, x)
-        K = K + self.noise ** 2 * torch.eye(n, device=x.device, dtype=x.dtype)
+        K = K + self.noise**2 * torch.eye(n, device=x.device, dtype=x.dtype)
 
         L = torch.linalg.cholesky(K)
         alpha = torch.cholesky_solve(y.unsqueeze(-1), L)
@@ -84,8 +89,10 @@ class GaussianProcessRegressor(nn.Module):
             mu: (m,) — predictive mean
             std: (m,) — predictive std (if return_std=True)
         """
-        if not hasattr(self, 'train_x') or self.train_x is None:
-            raise RuntimeError("GP model has not been fitted. Call fit() before predict().")
+        if not hasattr(self, "train_x") or self.train_x is None:
+            raise RuntimeError(
+                "GP model has not been fitted. Call fit() before predict()."
+            )
         K_s = self.kernel(x, self.train_x)
         mu = K_s @ self._alpha
 
@@ -94,12 +101,13 @@ class GaussianProcessRegressor(nn.Module):
 
         K_ss = self.kernel(x, x)
         v = torch.linalg.solve(self._L, K_s.T)
-        var = K_ss.diag() - (v ** 2).sum(0)
+        var = K_ss.diag() - (v**2).sum(0)
         var = var.clamp(min=0.0)
         return mu, var.sqrt()
 
-    def log_marginal_likelihood(self, x: torch.Tensor = None,
-                                 y: torch.Tensor = None) -> torch.Tensor:
+    def log_marginal_likelihood(
+        self, x: torch.Tensor = None, y: torch.Tensor = None
+    ) -> torch.Tensor:
         """
         Compute log marginal likelihood.
 
@@ -111,7 +119,7 @@ class GaussianProcessRegressor(nn.Module):
             lml: scalar — log marginal likelihood
         """
         if x is None:
-            if not hasattr(self, 'train_x') or self.train_x is None:
+            if not hasattr(self, "train_x") or self.train_x is None:
                 raise RuntimeError(
                     "GP model has not been fitted. Call fit() first, "
                     "or pass (x, y) explicitly to log_marginal_likelihood()."
@@ -120,7 +128,7 @@ class GaussianProcessRegressor(nn.Module):
 
         n = x.shape[0]
         K = self.kernel(x, x)
-        K = K + self.noise ** 2 * torch.eye(n, device=x.device, dtype=x.dtype)
+        K = K + self.noise**2 * torch.eye(n, device=x.device, dtype=x.dtype)
 
         L = torch.linalg.cholesky(K)
         alpha = torch.cholesky_solve(y.unsqueeze(-1), L).squeeze(-1)
@@ -131,8 +139,9 @@ class GaussianProcessRegressor(nn.Module):
 
         return lml
 
-    def negative_log_marginal_likelihood(self, x: torch.Tensor = None,
-                                          y: torch.Tensor = None) -> torch.Tensor:
+    def negative_log_marginal_likelihood(
+        self, x: torch.Tensor = None, y: torch.Tensor = None
+    ) -> torch.Tensor:
         """Convenience: negative LML for minimization."""
         return -self.log_marginal_likelihood(x, y)
 
@@ -141,11 +150,13 @@ class GaussianProcessRegressor(nn.Module):
 # 贝叶斯优化采集函数
 # ============================================================================
 
+
 class AcquisitionFunction:
     """Base class for Bayesian optimization acquisition functions."""
 
-    def __call__(self, mu: torch.Tensor, sigma: torch.Tensor,
-                 y_best: float) -> torch.Tensor:
+    def __call__(
+        self, mu: torch.Tensor, sigma: torch.Tensor, y_best: float
+    ) -> torch.Tensor:
         raise NotImplementedError
 
 
@@ -158,13 +169,14 @@ class ExpectedImprovement(AcquisitionFunction):
     where γ = (μ - f*) / σ
     """
 
-    def __call__(self, mu: torch.Tensor, sigma: torch.Tensor,
-                 y_best: float) -> torch.Tensor:
+    def __call__(
+        self, mu: torch.Tensor, sigma: torch.Tensor, y_best: float
+    ) -> torch.Tensor:
         sigma = sigma.clamp(min=1e-10)
         gamma = (mu - y_best) / sigma
         sqrt2 = torch.tensor(1.4142135623730951, device=mu.device, dtype=mu.dtype)
         sqrt2pi = torch.tensor(2.5066282746310002, device=mu.device, dtype=mu.dtype)
-        phi = torch.exp(-0.5 * gamma ** 2) / sqrt2pi
+        phi = torch.exp(-0.5 * gamma**2) / sqrt2pi
         Phi = 0.5 * (1 + torch.erf(gamma / sqrt2))
         ei = (mu - y_best) * Phi + sigma * phi
         return ei.clamp(min=0.0)
@@ -180,8 +192,9 @@ class UpperConfidenceBound(AcquisitionFunction):
     def __init__(self, beta: float = 2.0):
         self.beta = beta
 
-    def __call__(self, mu: torch.Tensor, sigma: torch.Tensor,
-                 y_best: float) -> torch.Tensor:
+    def __call__(
+        self, mu: torch.Tensor, sigma: torch.Tensor, y_best: float
+    ) -> torch.Tensor:
         return mu + self.beta * sigma
 
 
@@ -192,8 +205,9 @@ class ProbabilityOfImprovement(AcquisitionFunction):
     PI(x) = Φ((μ - f*) / σ)
     """
 
-    def __call__(self, mu: torch.Tensor, sigma: torch.Tensor,
-                 y_best: float) -> torch.Tensor:
+    def __call__(
+        self, mu: torch.Tensor, sigma: torch.Tensor, y_best: float
+    ) -> torch.Tensor:
         sigma = sigma.clamp(min=1e-10)
         gamma = (mu - y_best) / sigma
         sqrt2 = torch.tensor(1.4142135623730951, device=mu.device, dtype=mu.dtype)
@@ -203,6 +217,7 @@ class ProbabilityOfImprovement(AcquisitionFunction):
 # ============================================================================
 # 贝叶斯优化器
 # ============================================================================
+
 
 class BayesianOptimizer:
     """
@@ -244,7 +259,9 @@ class BayesianOptimizer:
 
         if x_train is None:
             x_next = torch.rand(self.bounds.shape[0])
-            x_next = x_next * (self.bounds[:, 1] - self.bounds[:, 0]) + self.bounds[:, 0]
+            x_next = (
+                x_next * (self.bounds[:, 1] - self.bounds[:, 0]) + self.bounds[:, 0]
+            )
             return x_next
 
         self.gp.fit(x_train, y_train)
@@ -298,25 +315,35 @@ class BayesianOptimizer:
 # NumPy reference implementations
 # ============================================================================
 
-def gp_predict_np(x_train: np.ndarray, y_train: np.ndarray,
-                  x_test: np.ndarray, length_scale: float = 1.0,
-                  variance: float = 1.0, noise: float = 0.1) -> tuple:
+
+def gp_predict_np(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    length_scale: float = 1.0,
+    variance: float = 1.0,
+    noise: float = 0.1,
+) -> tuple:
     """NumPy reference for GP prediction."""
     n = x_train.shape[0]
 
-    K = variance * np.exp(-0.5 * np.sum((x_train[:, None] - x_train[None]) ** 2, axis=-1)
-                          / length_scale ** 2)
-    K += noise ** 2 * np.eye(n)
+    K = variance * np.exp(
+        -0.5
+        * np.sum((x_train[:, None] - x_train[None]) ** 2, axis=-1)
+        / length_scale**2
+    )
+    K += noise**2 * np.eye(n)
 
     L = np.linalg.cholesky(K)
     alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
 
-    K_s = variance * np.exp(-0.5 * np.sum((x_test[:, None] - x_train[None]) ** 2, axis=-1)
-                            / length_scale ** 2)
+    K_s = variance * np.exp(
+        -0.5 * np.sum((x_test[:, None] - x_train[None]) ** 2, axis=-1) / length_scale**2
+    )
     mu = K_s @ alpha
 
     K_ss = variance * np.ones(x_test.shape[0])
     v = np.linalg.solve(L, K_s.T)
-    var = K_ss - np.sum(v ** 2, axis=0)
+    var = K_ss - np.sum(v**2, axis=0)
 
     return mu, np.sqrt(np.clip(var, 0, None))

@@ -35,7 +35,9 @@ class TuningRuleBatchResult:
     diagnostics: np.ndarray
 
 
-def make_tuning_rule_batch_case(batch: int = 1024, seed: int = 2033) -> TuningRuleBatchCase:
+def make_tuning_rule_batch_case(
+    batch: int = 1024, seed: int = 2033
+) -> TuningRuleBatchCase:
     rng = np.random.default_rng(seed)
     process_gain = rng.uniform(0.6, 3.0, size=batch).astype(np.float32)
     time_constant = rng.uniform(5.0, 80.0, size=batch).astype(np.float32)
@@ -60,7 +62,12 @@ def tuning_rule_batch(
     tau = np.asarray(time_constant, dtype=np.float32)
     theta = np.asarray(dead_time, dtype=np.float32)
     lam = np.asarray(lambda_value, dtype=np.float32)
-    if k.ndim != 1 or tau.shape != k.shape or theta.shape != k.shape or lam.shape != k.shape:
+    if (
+        k.ndim != 1
+        or tau.shape != k.shape
+        or theta.shape != k.shape
+        or lam.shape != k.shape
+    ):
         raise ValueError("all inputs must have shape [batch]")
 
     eps = np.float32(1.0e-6)
@@ -92,7 +99,9 @@ def tuning_rule_batch(
     pid[:, 1, 2] = kp * td
 
     # Cohen-Coon PID approximation for FOPDT.
-    kp = (safe_tau / (safe_k * safe_theta)) * (4.0 / 3.0 + safe_theta / (4.0 * safe_tau))
+    kp = (safe_tau / (safe_k * safe_theta)) * (
+        4.0 / 3.0 + safe_theta / (4.0 * safe_tau)
+    )
     ti = safe_theta * (32.0 + 6.0 * ratio) / np.maximum(13.0 + 8.0 * ratio, eps)
     td = safe_theta * 4.0 / np.maximum(11.0 + 2.0 * ratio, eps)
     pid[:, 2, 0] = kp
@@ -105,7 +114,9 @@ def tuning_rule_batch(
         kd_abs = np.abs(pid[:, rule, 2])
         diag[:, rule, 0] = valid.astype(np.float32)
         diag[:, rule, 1] = ratio
-        diag[:, rule, 2] = kp_abs + safe_tau * ki_abs + kd_abs / np.maximum(safe_tau, eps)
+        diag[:, rule, 2] = (
+            kp_abs + safe_tau * ki_abs + kd_abs / np.maximum(safe_tau, eps)
+        )
         diag[:, rule, 3] = safe_lam / safe_theta
         pid[~valid, rule, :] = 0.0
         diag[~valid, rule, 2] = 0.0

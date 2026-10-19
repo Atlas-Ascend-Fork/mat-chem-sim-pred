@@ -21,7 +21,9 @@ from pid_basis_gemm_reference import fit_reference, make_basis_gemm_case, reduce
 def test_fopdt_basis_gemm_best_candidate():
     case = make_basis_gemm_case("FOPDT", batch=8, n=256, candidates=65)
     dot, best_sse, best_k, best_idx = fit_reference(case)
-    reduced_sse, reduced_k, reduced_idx = reduce_best(dot, case.basis_norm, case.y_energy)
+    reduced_sse, reduced_k, reduced_idx = reduce_best(
+        dot, case.basis_norm, case.y_energy
+    )
 
     assert dot.shape == (8, 65)
     assert best_sse.shape == (8,)
@@ -37,4 +39,6 @@ def test_fopdt_gain_is_close_to_truth():
 
     assert np.max(np.abs(best_sse)) < 1.0e-2
     assert np.all(best_idx == case.truth_index)
-    assert np.allclose(best_k, np.array([1.2, 1.236, 1.272, 1.308], dtype=np.float32), atol=2.0e-3)
+    assert np.allclose(
+        best_k, np.array([1.2, 1.236, 1.272, 1.308], dtype=np.float32), atol=2.0e-3
+    )

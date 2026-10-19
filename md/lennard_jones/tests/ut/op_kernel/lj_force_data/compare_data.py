@@ -12,17 +12,26 @@
 import sys
 import numpy as np
 
+
 def compare_results(dtype_str="float32", rtol=1e-3, atol=1e-3):
     """比较算子输出与参考结果"""
     np_dtype = np.float32 if dtype_str == "float32" else np.float16
 
     # 读取参考结果
-    forces_golden = np.fromfile(f"{dtype_str}_forces_golden_lj_force.bin", dtype=np_dtype)
-    energy_golden = np.fromfile(f"{dtype_str}_energy_golden_lj_force.bin", dtype=np.float32)
+    forces_golden = np.fromfile(
+        f"{dtype_str}_forces_golden_lj_force.bin", dtype=np_dtype
+    )
+    energy_golden = np.fromfile(
+        f"{dtype_str}_energy_golden_lj_force.bin", dtype=np.float32
+    )
 
     # 读取算子输出
-    forces_output = np.fromfile(f"{dtype_str}_forces_output_lj_force.bin", dtype=np_dtype)
-    energy_output = np.fromfile(f"{dtype_str}_energy_output_lj_force.bin", dtype=np.float32)
+    forces_output = np.fromfile(
+        f"{dtype_str}_forces_output_lj_force.bin", dtype=np_dtype
+    )
+    energy_output = np.fromfile(
+        f"{dtype_str}_energy_output_lj_force.bin", dtype=np.float32
+    )
 
     # 比较力
     forces_match = np.allclose(forces_output, forces_golden, rtol=rtol, atol=atol)
@@ -41,6 +50,7 @@ def compare_results(dtype_str="float32", rtol=1e-3, atol=1e-3):
         print("Energy match!")
 
     return forces_match and energy_match
+
 
 if __name__ == "__main__":
     dtype_str = sys.argv[1] if len(sys.argv) > 1 else "float32"

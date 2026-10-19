@@ -111,7 +111,12 @@ def _simulate_candidate(
             last_unsettled = (step + 1) * sample_interval
         prev_error = error
     overshoot = max(max_overshoot, 0.0)
-    score = iae + overshoot_weight * overshoot + settling_weight * last_unsettled + control_weight * control_energy
+    score = (
+        iae
+        + overshoot_weight * overshoot
+        + settling_weight * last_unsettled
+        + control_weight * control_energy
+    )
     return score, iae, ise, overshoot, last_unsettled
 
 
@@ -149,13 +154,26 @@ def fopdt_closed_loop_score(
             if score < best_score:
                 best_score = score
                 best_idx[b_idx] = c_idx
-                best_values = (score, case.kp[c_idx], case.ki[c_idx], case.kd[c_idx], iae, ise, overshoot, settling)
+                best_values = (
+                    score,
+                    case.kp[c_idx],
+                    case.ki[c_idx],
+                    case.kd[c_idx],
+                    iae,
+                    ise,
+                    overshoot,
+                    settling,
+                )
         results[b_idx] = np.asarray(best_values, dtype=np.float32)
     return results, best_idx
 
 
-def benchmark_reference(batch: int, candidates: int, sim_steps: int, iters: int = 3) -> dict[str, float]:
-    case = make_fopdt_closed_loop_case(batch=batch, candidates=candidates, sim_steps=sim_steps)
+def benchmark_reference(
+    batch: int, candidates: int, sim_steps: int, iters: int = 3
+) -> dict[str, float]:
+    case = make_fopdt_closed_loop_case(
+        batch=batch, candidates=candidates, sim_steps=sim_steps
+    )
     fopdt_closed_loop_score(case)
     start = time.perf_counter()
     for _ in range(iters):

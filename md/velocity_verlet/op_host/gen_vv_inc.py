@@ -20,8 +20,11 @@ kernels = ["vv_integrate", "vv_finish", "thermo_scale"]
 
 for name in kernels:
     merge_obj = os.path.join(
-        BUILD_DIR, "npu_ops", "velocity-verlet",
-        f"{name}_kernel_merge_obj_dir", "device_aiv.o"
+        BUILD_DIR,
+        "npu_ops",
+        "velocity-verlet",
+        f"{name}_kernel_merge_obj_dir",
+        "device_aiv.o",
     )
     inc_path = os.path.join(HOST_DIR, f"{name}_device_aiv_bin.inc")
 
@@ -36,8 +39,11 @@ for name in kernels:
 
     # Also try the aiv_device_dir for pre-merge version
     aiv_dir = os.path.join(
-        BUILD_DIR, "npu_ops", "velocity-verlet",
-        f"{name}_kernel_aiv_device_dir", "device_aiv.o"
+        BUILD_DIR,
+        "npu_ops",
+        "velocity-verlet",
+        f"{name}_kernel_aiv_device_dir",
+        "device_aiv.o",
     )
     if os.path.exists(aiv_dir):
         with open(aiv_dir, "rb") as f2:
@@ -47,7 +53,9 @@ for name in kernels:
     # GAFF2 kernel host uses merge_obj version (9392 bytes)
     # We'll use the same approach — embedded raw ELF
     with open(inc_path, "w") as f:
-        f.write(f"// Auto-generated from {name}_kernel_merge_obj_dir/device_aiv.o ({len(data)} bytes)\n")
+        f.write(
+            f"// Auto-generated from {name}_kernel_merge_obj_dir/device_aiv.o ({len(data)} bytes)\n"
+        )
         for i in range(0, len(data)):
             if i % 12 == 0:
                 f.write("  ")

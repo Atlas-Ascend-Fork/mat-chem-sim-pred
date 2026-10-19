@@ -115,7 +115,9 @@ def test_gp_fit_predict():
     gp.fit(x_t, y_t)
 
     mu_t, std_t = gp.predict(x_test_t, return_std=True)
-    mu_np, std_np = gp_predict_np(x, y, x_test, length_scale=1.0, variance=1.0, noise=0.1)
+    mu_np, std_np = gp_predict_np(
+        x, y, x_test, length_scale=1.0, variance=1.0, noise=0.1
+    )
 
     check("GP predict mean", mu_t.detach().numpy(), mu_np)
     check("GP predict std", std_t.detach().numpy(), std_np)
@@ -189,9 +191,15 @@ def test_acquisition_functions():
     assert pi_vals.shape == mu.shape
     assert torch.all(ei_vals >= 0), "EI should be non-negative"
 
-    print(f"  EI at mu=0: {ei(torch.tensor([0.0]), torch.tensor([0.5]), 1.0).item():.4f}")
-    print(f"  EI at mu=2: {ei(torch.tensor([2.0]), torch.tensor([0.5]), 1.0).item():.4f}")
-    assert ei(torch.tensor([2.0]), torch.tensor([0.5]), 1.0) > ei(torch.tensor([0.0]), torch.tensor([0.5]), 1.0)
+    print(
+        f"  EI at mu=0: {ei(torch.tensor([0.0]), torch.tensor([0.5]), 1.0).item():.4f}"
+    )
+    print(
+        f"  EI at mu=2: {ei(torch.tensor([2.0]), torch.tensor([0.5]), 1.0).item():.4f}"
+    )
+    assert ei(torch.tensor([2.0]), torch.tensor([0.5]), 1.0) > ei(
+        torch.tensor([0.0]), torch.tensor([0.5]), 1.0
+    )
 
 
 def test_bo_on_simple_function():
@@ -200,7 +208,7 @@ def test_bo_on_simple_function():
     torch.manual_seed(42)
 
     def objective(x):
-        return -(x - 0.5) ** 2 + 1.0
+        return -((x - 0.5) ** 2) + 1.0
 
     bounds = np.array([[0.0, 1.0]])
     gp = GaussianProcessRegressor(

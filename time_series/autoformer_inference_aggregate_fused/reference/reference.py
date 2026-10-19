@@ -69,8 +69,7 @@ def _lag_reference(values, delay, weights):
 
 def _lag_batch(batch_values, delay, weights):
     return [
-        [_lag_row(channel, delay, weights) for channel in head]
-        for head in batch_values
+        [_lag_row(channel, delay, weights) for channel in head] for head in batch_values
     ]
 
 

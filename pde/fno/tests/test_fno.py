@@ -14,6 +14,7 @@ import pytest
 
 FNO_PI = 3.14159265358979
 
+
 def dft_1d(signal):
     n = len(signal)
     re = np.zeros(n)
@@ -25,6 +26,7 @@ def dft_1d(signal):
             im[k] += signal[i] * np.sin(angle)
     return re, im
 
+
 def idft_1d(re, im):
     n = len(re)
     sig = np.zeros(n)
@@ -34,9 +36,18 @@ def idft_1d(re, im):
             sig[i] += (re[k] * np.cos(angle) - im[k] * np.sin(angle)) / n
     return sig
 
-def fno_numpy(inputs, lift_weight, lift_bias, spectral_weight_real,
-              spectral_weight_imag, project_weight, project_bias,
-              grid_dim, modes):
+
+def fno_numpy(
+    inputs,
+    lift_weight,
+    lift_bias,
+    spectral_weight_real,
+    spectral_weight_imag,
+    project_weight,
+    project_bias,
+    grid_dim,
+    modes,
+):
     batch_size = inputs.shape[0]
     grid = inputs.shape[1]
     in_ch = inputs.shape[2]
@@ -62,6 +73,7 @@ def fno_numpy(inputs, lift_weight, lift_bias, spectral_weight_real,
     output = h @ project_weight.T + project_bias
     return output
 
+
 class TestFNO:
     def test_dft_roundtrip(self):
         signal = np.random.randn(8).astype(np.float32)
@@ -86,8 +98,9 @@ class TestFNO:
         proj_w = np.random.randn(out_ch, hidden_ch).astype(np.float32)
         proj_b = np.random.randn(out_ch).astype(np.float32)
 
-        result = fno_numpy(inputs, lift_w, lift_b, spec_re, spec_im,
-                            proj_w, proj_b, grid, modes)
+        result = fno_numpy(
+            inputs, lift_w, lift_b, spec_re, spec_im, proj_w, proj_b, grid, modes
+        )
         assert result.shape == (batch, grid, out_ch)
         assert np.all(np.isfinite(result))
 
@@ -108,6 +121,7 @@ class TestFNO:
         proj_w = np.zeros((out_ch, hidden_ch)).astype(np.float32)
         proj_b = np.zeros(out_ch).astype(np.float32)
 
-        result = fno_numpy(inputs, lift_w, lift_b, spec_re, spec_im,
-                            proj_w, proj_b, grid, modes)
+        result = fno_numpy(
+            inputs, lift_w, lift_b, spec_re, spec_im, proj_w, proj_b, grid, modes
+        )
         assert np.allclose(result, 0, atol=1e-6)

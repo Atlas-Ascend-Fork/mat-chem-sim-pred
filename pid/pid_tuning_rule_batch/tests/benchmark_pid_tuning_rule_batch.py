@@ -21,6 +21,7 @@ from pid_tuning_rule_batch_reference import (
     tuning_rule_batch_cpu_loop,
 )
 
+
 def _time_ms(fn, iters: int) -> float:
     best = float("inf")
     for _ in range(iters):
@@ -40,6 +41,7 @@ def benchmark_case(batch: int, iters: int = 10) -> str:
         f"B={batch} work_items={batch * 3 * 3} "
         f"loop_ms={loop_ms:.6f} vectorized_ms={vectorized_ms:.6f} vectorized_speedup={speedup:.2f}x"
     )
+
 
 def main() -> None:
     cases = (
