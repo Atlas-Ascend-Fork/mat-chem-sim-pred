@@ -47,6 +47,21 @@ resolve_operator() {
     return 1
 }
 
+# 判断算子是否匹配前缀列表（支持逗号分隔，如 "pid,time_series,molecular"）。
+matches_prefix() {
+    local path="$1" prefixes="$2" prefix
+    local IFS=','
+    [ -n "$prefixes" ] || return 0
+    for prefix in $prefixes; do
+        prefix="${prefix%/}"
+        [ -n "$prefix" ] || return 0
+        case "$path" in
+            "$prefix"|"$prefix"/*) return 0 ;;
+        esac
+    done
+    return 1
+}
+
 # 判断目录是否为 DirectMatchDir（忽略调用方传入的尾部斜杠）
 is_direct_match_dir() {
     local candidate="${1%/}" dir

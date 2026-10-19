@@ -5,8 +5,11 @@ mat_chem_sim_pred:
   team: "mat_chem_sim_pred"
   src:
     release:
-      - simulation
-      - prediction
+      - md
+      - pde
+      - molecular
+      - pid
+      - time_series
       - common
       - cmake
       - scripts

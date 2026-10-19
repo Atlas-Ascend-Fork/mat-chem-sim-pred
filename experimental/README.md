@@ -19,8 +19,12 @@
 4. `README.md` / `docs/algorithm.md` / `docs/api_reference.md` 齐备；
 5. 在 `cmake/variables.cmake` 的族目录下有一席之地（必要时新增族）。
 
-## 当前状态
+## 当前内容
 
-骨架阶段：本目录只有本说明，尚未迁入任何内容。
-计划迁入：`simulation/MaterialPropertyPrediction/DAO`、`prediction/SmallData`（PyTorch 参考实现），
-以及 roadmap 中"规划中"的 ML-MD / 材料性质预测条目。迁移动作放在 roadmap Step 2。
+| 内容 | 说明 | 运行方式 |
+|---|---|---|
+| `DAO/` | 材料性质预测的 PyTorch 基础算子库 | `bash build.sh --python experimental/DAO` |
+| `SmallData/` | GP 回归 + 贝叶斯优化参考实现 | `bash build.sh --python experimental/SmallData` |
+| `MaterialPropertyPrediction.md` | 材料性质预测与结构生成的方向综述 | 阅读 |
+
+这些内容不参与算子计数与 CMake 构建。roadmap 中"规划中"的 ML-MD / 材料性质预测条目在落地前也放这里。

@@ -68,7 +68,7 @@ if [ -n "$PYTHON_OP" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 参考测试模式（位置参数可作前缀过滤，如 prediction/ProcessControl/）
+# 参考测试模式（位置参数可作前缀过滤，支持逗号分隔，如 pid/,time_series/,molecular/）
 # ---------------------------------------------------------------------------
 if [ "$REFERENCE_TEST" = true ]; then
     run_reference_tests "$FILELIST" "${OPERATORS[0]:-}" "$COMMON_DIRS"
@@ -99,14 +99,14 @@ if [ -n "$FILELIST" ]; then
     if [ ${#FILELIST_RESULT[@]} -gt 0 ] && [ "${FILELIST_RESULT[0]}" = "ALL" ]; then
         echo "[INFO] Common directory changed, building operators in scope: ${SCOPE:-<all>}"
         for op in "${ALL_OPERATORS[@]}"; do
-            if [ -z "$SCOPE" ] || [[ "$op" == "$SCOPE"* ]]; then
+            if matches_prefix "$op" "$SCOPE"; then
                 OPERATORS+=("$op")
             fi
         done
     else
         for op in "${FILELIST_RESULT[@]}"; do
             [ -z "$op" ] && continue
-            if [ -z "$SCOPE" ] || [[ "$op" == "$SCOPE"* ]]; then
+            if matches_prefix "$op" "$SCOPE"; then
                 OPERATORS+=("$op")
             fi
         done

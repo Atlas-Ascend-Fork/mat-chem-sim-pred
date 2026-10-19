@@ -9,36 +9,32 @@ mat-chem-sim-pred/
 ├── .gitcode/                       # Issue / PR 模板与 CI 工作流
 ├── cmake/
 │   ├── variables.cmake             # 唯一配置源：算子族、例外算子、Python 算子、共享目录
-│   └── ops.cmake                   # 算子发现（CMake 侧，与 build.sh 同口径）
+│   ├── ops.cmake                   # 算子发现（CMake 侧，与 build.sh 同口径）
+│   └── op_prelude.cmake            # 算子工程前置：CANN 探测 + 顶层/独立两种模式
 ├── common/                         # 跨算子公共层
 │   ├── inc/{op_host,op_kernel,op_api}/
 │   ├── src/                        # 确有实现时新增，当前为空
 │   └── tests/                      # 公共层 UT
+├── md/                             # 分子动力学算子族（6）
+├── pde/                            # AI for PDE 算子族（3 + pde_common）
+├── molecular/                      # 图 / 点云 / 分子几何算子族（26）
+├── pid/                            # PID 整定算子族（12 + common）
+├── time_series/                    # 时序预测算子族（14 + common）
 ├── docs/zh/                        # 文档中心（跨算子文档）
-├── examples/                       # 跨算子示例；当前占位，Step 3 落 add_example 骨架
-├── experimental/                   # 未成熟能力隔离区，默认不参与构建
+├── examples/                       # 跨算子示例（当前占位）
+├── experimental/                   # 未成熟能力与 PyTorch 参考实现（DAO、SmallData）
 ├── scripts/
 │   ├── lib/{common,config,ops}.sh  # 日志 / 配置解析 / 算子发现
 │   ├── build_options.sh            # 参数与帮助
 │   ├── build_single.sh             # 单算子编译与清理
 │   ├── build_python.sh             # Python 算子测试
 │   └── build_reference.sh          # 参考实现测试
-├── simulation/
-│   ├── AI4MD/                      # 分子动力学算子族（6）
-│   ├── AI4PDE/                     # PDE 算子族（3）
-│   └── MaterialPropertyPrediction/ # PyTorch 参考实现（非算子）
-├── prediction/
-│   ├── ProcessControl/
-│   │   ├── PIDModelFit/            # PID 整定算子族（12）
-│   │   ├── TimeSeriesForecast/     # 时序预测算子族（14）
-│   │   └── NonTemporalPrediction/  # 图/点云/分子几何算子族（26）
-│   └── SmallData/                  # GP 回归 / BO 参考实现（非算子）
 ├── template/                       # 文档与代码模板
 ├── tests/
 │   ├── README.md
 │   └── ut/                         # 全仓目录契约测试（无需 CANN）
 ├── tutorial/                       # 教程 notebook
-├── CMakeLists.txt                  # 顶层入口：公共层 + 可选算子聚合
+├── CMakeLists.txt                  # 顶层入口：公共层 + 算子聚合
 ├── build.sh                        # 统一构建入口（薄壳）
 ├── install_deps.sh                 # 构建依赖安装
 ├── requirements.txt                # Python 测试/参考实现依赖
@@ -50,11 +46,25 @@ mat-chem-sim-pred/
 └── Third_Party_Open_Source_Software_List.yaml / _Notice
 ```
 
-## 算子目录（当前契约）
+## 算子族
+
+一级目录即能力边界，不再按"科学计算 / 预测优化"分桶：
+
+| 族 | 服务对象 | 典型上游 |
+|---|---|---|
+| `md/` | 经典分子动力学 | LAMMPS / GROMACS 力场与积分器 |
+| `pde/` | PDE 神经算子推理 | PINN / FNO / DeepONet |
+| `molecular/` | 图、点云、分子几何 | PyG、PointNet++、DimeNet、GemNet |
+| `pid/` | 过程模型辨识与整定 | FOPDT / IPDT / SOPDT、ZN / IMC / CC |
+| `time_series/` | 时序预测子图 | Mamba、Autoformer、Reformer、CfC |
+
+族的增删改在 `cmake/variables.cmake` 的 `MATCHEM_OP_CATEGORIES` 登记，构建脚本与 CMake 自动跟随。
+
+## 算子目录
 
 ```text
 <op>/
-├── CMakeLists.txt        # 当前是独立 project()，可 cmake -S <op> -B <op>/build
+├── CMakeLists.txt        # 父级片段；单独 cmake -S <op> 时由 op_prelude 自举
 ├── README.md             # 功能、输入输出、构建与测试命令、性能摘要
 ├── docs/
 │   ├── algorithm.md      # 数学定义、边界条件、NPU 实现策略
@@ -70,21 +80,21 @@ mat-chem-sim-pred/
 
 约定：
 
-- 算子目录名小写下划线；存量 6 个不合规目录记录在 `tests/ut/layout_exceptions.json`，只减不增。
+- 算子目录名小写下划线；契约测试会拒绝新增的不合规命名。
 - `tests/` 存在则必须有 `reference/`；CI 的 `--reference-test` 会据此判红。
 - 一个算子一个目录；不要在同一 PR 混入探索性原型（放 `experimental/`）。
 
 ## 族级 `common/`
 
-某些族已有族内共享实现（如 `PIDModelFit/common/`、`TimeSeriesForecast/common/`），只服务本族。
+`pid/common/`、`time_series/common/` 只服务本族；`molecular/` 的共享头直接放在族根。
 提升到顶层 `common/` 的条件：出现第二个族的使用方，且语义完全一致。
 
-## 规划中的调整（roadmap Step 2）
+## 构建入口
 
-当前仍是 `simulation/` + `prediction/` 两层分类。Step 2 会把算子族收到一级目录：
-
-```text
-md/  pde/  molecular/  process/
+```bash
+bash build.sh <op>                 # 单算子，独立 configure（推荐日常）
+cmake -S . -B build                # 顶层聚合，默认编译全部算子（需 CANN）
+cmake -S . -B build -DMATCHEM_OP=molecular/<op>   # 只聚合一个算子
 ```
 
-并将 `DAO`、`SmallData` 迁入 `experimental/`。本页在迁移完成后同步更新。
+新增算子或算子族都不需要修改 `build.sh` / 顶层 `CMakeLists.txt`。

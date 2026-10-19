@@ -19,27 +19,27 @@
 
 # 算子族根目录（相对仓库根）
 set(MATCHEM_OP_CATEGORIES
-    "simulation/AI4MD"
-    "simulation/AI4PDE"
-    "prediction/ProcessControl/PIDModelFit"
-    "prediction/ProcessControl/TimeSeriesForecast"
-    "prediction/ProcessControl/NonTemporalPrediction"
+    "md"
+    "pde"
+    "pid"
+    "time_series"
+    "molecular"
 )
 
 # 暂不纳入构建的算子（实现未完成，补齐后从此处移除）
 set(MATCHEM_SKIP_OPERATORS
-    "simulation/AI4MD/Dissipative_particle_dynamics"
+    "md/dissipative_particle_dynamics"
 )
 
 # Python 参考实现：无 CMakeLists.txt，通过 build.sh --python 运行 pytest
 set(MATCHEM_PYTHON_OPERATORS
-    "simulation/MaterialPropertyPrediction/DAO"
-    "prediction/SmallData"
+    "experimental/DAO"
+    "experimental/SmallData"
 )
 
 # DirectMatchDir：只认该目录下的直接文件变更；子目录变更由算子自身路径匹配。
 set(MATCHEM_DIRECT_MATCH_DIRS
-    "prediction/ProcessControl/NonTemporalPrediction"
+    "molecular"
 )
 
 # 默认 SOC（可被 --soc= / -DSOC_VERSION= 覆盖）

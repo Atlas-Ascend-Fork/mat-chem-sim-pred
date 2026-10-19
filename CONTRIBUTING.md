@@ -20,67 +20,26 @@ mat-chem-sim-pred 是基于华为 CANN（Ascend C）计算框架的化工行业�
 
 ### 1.1 仓库结构
 
-```
+```text
 mat-chem-sim-pred/
-├── simulation/                    # 科学计算方向
-│   ├── AI4MD/                     # 机器学习分子动力学（6 个算子）
-│   ├── AI4PDE/                     # AI for PDE（3 个算子 + 公共模块）
-│   └── MaterialPropertyPrediction/ # 材料性质预测（PyTorch 参考）
-├── prediction/                     # 预测优化方向
-│   ├── SmallData/                  # 小数据预测优化（PyTorch 参考）
-│   └── ProcessControl/             # 工业过程控制
-│       └── PIDModelFit/            # PID 模型辨识与整定（12 个算子）
-├── template/                       # 算子贡献模板
-│   ├── algorithm.md
-│   ├── references.md
-│   ├── operator_example.md
-│   └── test_architecture.md
-├── roadmap.md
-├── FAQ.md
-└── AGENTS.md
+├── md/            # 分子动力学（6 个算子）
+├── pde/           # AI for PDE（3 个算子 + pde_common）
+├── molecular/     # 图 / 点云 / 分子几何（26 个算子）
+├── pid/           # PID 模型辨识与整定（12 个算子）
+├── time_series/   # 时序预测（14 个算子）
+├── common/        # 跨算子公共层
+├── cmake/         # 构建配置与算子族单一配置源（variables.cmake）
+├── docs/zh/       # 文档中心
+├── experimental/  # PyTorch 参考实现（DAO、SmallData）
+├── scripts/       # build.sh 的实现
+├── tests/ut/      # 目录契约测试（无需 CANN）
+└── template/      # 贡献模板
 ```
 
 ### 1.2 已有算子清单
 
-贡献新算子前，建议先阅读已有算子代码作为参考。
-
-**simulation/AI4MD — 机器学习分子动力学**（6 个，Ascend C 就绪）
-
-| 算子目录 | 公开接口 | 功能 |
-|----------|----------|------|
-| `Lennard_Jones/` | LJ 力场 | Lennard-Jones 势能计算 |
-| `GAFF2/` | GAFF2 力场 | GAFF2 分子力场 |
-| `PME/` | PME 静电 | 粒子网格 Ewald 静电求和 |
-| `SHAKE/` | SHAKE 约束 | 键长约束算法 |
-| `velocity-verlet/` | Velocity Verlet 积分 | 分子动力学积分器 |
-| `Dissipative_particle_dynamics/` | DPD | 耗散粒子动力学 |
-
-**simulation/AI4PDE — AI for PDE**（3 个，Ascend C 就绪）
-
-| 算子目录 | 功能 |
-|----------|------|
-| `pinn/` | 物理信息神经网络推理算子 |
-| `fno/` | 傅里叶神经算子推理算子 |
-| `deeponet/` | DeepONet 推理算子 |
-
-**prediction/ProcessControl/PIDModelFit — PID 模型辨识与整定**（12 个，Ascend C 就绪）
-
-| 阶段 | 算子 | 公开接口 |
-|------|------|----------|
-| 模型辨识 | `pid_fopdt_basis_gemm_fit` | `aclnnPidFopdtBasisGemmFit` |
-| 模型辨识 | `pid_ipdt_basis_gemm_fit` | `aclnnPidIpdtBasisGemmFit` |
-| 模型辨识 | `pid_sopdt_basis_gemm_fit` | `aclnnPidSopdtBasisGemmFit` |
-| 模型诊断 | `pid_residual_diagnostics` | 残差诊断 |
-| 模型诊断 | `pid_windowed_residual_diagnostics` | 窗口残差诊断 |
-| PID 参数生成 | `pid_tuning_rule_batch` | Ziegler-Nichols / IMC / Cohen-Coon |
-| 候选仿真 | `pid_fopdt_batch_rollout_score` | FOPDT 闭环仿真评分 |
-| 候选仿真 | `pid_ipdt_batch_rollout_score` | IPDT 闭环仿真评分 |
-| 候选仿真 | `pid_sopdt_batch_rollout_score` | SOPDT 闭环仿真评分 |
-| 特征提取 | `pid_step_response_features` | 阶跃响应特征提取 |
-| 性能评估 | `pid_control_performance_metrics` | 控制性能指标 |
-| 性能评估 | `pid_process_capability_metrics` | 过程能力指标 |
-
----
+完整清单与逐项状态见 [docs/zh/op_list.md](docs/zh/op_list.md)，能力矩阵见 [README.md](README.md)。
+新增算子前，先读同族已有算子的 `CMakeLists.txt`、`op_host/`、`op_kernel/` 与 `tests/`。
 
 ## 2 提交流程
 
@@ -186,10 +145,8 @@ git log --pretty=fuller
 
 ### 3.1 标准目录
 
-新建算子使用小写加下划线命名。根据算子所属领域放入对应一级目录：
-
-- 科学计算方向 → `simulation/<子方向>/<算子名>/`
-- 预测优化方向 → `prediction/<子方向>/<算子名>/`
+新建算子使用小写加下划线命名，放入 `cmake/variables.cmake` 登记的五个一级族之一：
+`md/`、`pde/`、`molecular/`、`pid/`、`time_series/`。
 
 可被构建系统发现的算子族登记在 `cmake/variables.cmake` 的 `MATCHEM_OP_CATEGORIES`；
 暂缓构建、Python 算子与共享目录同样在该文件登记。`build.sh` 与顶层 `CMakeLists.txt` 只消费这份配置。

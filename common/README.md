@@ -30,7 +30,7 @@ common/
 
 ## 与算子目录内 `common/` 的关系
 
-族级 `common/`（例如 `prediction/ProcessControl/PIDModelFit/common/`）只服务本族；
+族级 `common/`（例如 `pid/common/`）只服务本族；
 本目录服务全仓。提升路径：族级 `common/` → 出现第二个族的使用方 → 迁到本目录，并补 UT。
 
 ## 构建

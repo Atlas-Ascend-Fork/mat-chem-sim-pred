@@ -2,6 +2,32 @@
 
 > 记录仓库级重要变更，按时间倒序。算子自身的算法/性能变更写在该算子的 `docs/` 与 PR 中。
 
+## v0.2.0 — 2026-10-19
+
+算子族收平为一级目录，构建入口收敛到顶层 CMake。
+
+### 变更
+
+- 算子族从 `simulation/<方向>/` + `prediction/ProcessControl/<方向>/` 收平为
+  `md/`、`pde/`、`molecular/`、`pid/`、`time_series/` 五个一级目录。
+- 6 个存量算子目录改为小写下划线：`lennard_jones`、`gaff2`、`pme`、`shake`、
+  `velocity_verlet`、`dissipative_particle_dynamics`。
+- `DAO`、`SmallData` 迁入 `experimental/`；材料性质预测综述迁为 `experimental/MaterialPropertyPrediction.md`；
+  原 ProcessControl 汇总页迁为 `docs/zh/appendix/process-control.md`。
+- `build.sh --scope` 与 `--reference-test` 支持逗号分隔多前缀（`pid/,time_series/,molecular/`）。
+- 算子 `CMakeLists.txt` 从独立 `project()` 改为父级片段：CANN 探测与工程初始化收敛到
+  `cmake/op_prelude.cmake`，顶层 `CMakeLists.txt` 默认聚合全部 60 个算子；
+  单独 `cmake -S <op>` 仍可通过 prelude 自举。
+- `tests/ut/layout_exceptions.json` 收缩：命名例外清零。
+
+### 验证
+
+- `bash build.sh --list` 60 个算子；`pytest tests/ut` 10 项通过。
+- 顶层聚合配置在 CANN stub 下发现并配置 60 个算子，275 个目标；单算子 `cmake -S <op>` 抽样 7 个通过。
+- 参考实现抽样：`molecular/csr_gatv2_dynamic_attention_aggregate_fused` 7 项通过；
+  `experimental/SmallData` 10 项通过（`DAO` 依赖 pypto，本机无法运行）。
+- 未做真实 Ascend C 编译与 NPU 用例（本机无 CANN / NPU）。
+
 ## v0.1.0 — 2026-10-19
 
 仓库骨架对齐 CANN 算子仓（ops-math / ops-nn）范式，不改变任何算子的编译产物与对外 API。
@@ -29,7 +55,7 @@
 
 ### 已知缺口（后续 Step）
 
-- 算子目录仍是 `simulation/` + `prediction/` 两层分类；`NonTemporalPrediction` 下的图/点云算子尚未归位。
-- 6 个存量算子目录名不合规（大写 / 连字符），记录在 `tests/ut/layout_exceptions.json`。
-- 36 个有 `tests/` 的算子尚无 `reference/`，契约测试以基线例外记录。
-- 算子 `CMakeLists.txt` 仍是独立 `project()`；顶层聚合为实验性，Step 3 完成契约迁移后转正。
+- ~~算子目录两层分类、图/点云算子未归位~~（v0.2.0 已收平为五个一级族）。
+- ~~6 个存量算子目录名不合规~~（v0.2.0 已改名）。
+- 36 个有 `tests/` 的算子尚无 `reference/`，契约测试以基线例外记录（待补）。
+- ~~算子 `CMakeLists.txt` 仍是独立 `project()`~~（v0.2.0 已改为父级片段，顶层聚合转正）。

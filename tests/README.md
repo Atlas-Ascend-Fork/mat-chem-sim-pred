@@ -30,5 +30,6 @@ python -m pytest tests/ut -q
 
 ## 后续
 
-Step 3 会把 `reference/` 迁移为 `tests/assets/golden.py`（对齐 CANN 算子仓惯例），
-届时 R5 与 `layout_exceptions.json` 同步修改，不在本阶段提前改口径。
+`reference/` → `tests/assets/golden.py`（对齐 CANN 算子仓惯例）留待单独 PR 评估：
+本轮已有多个算子正在补 `reference/`，同时改目录会制造冲突。届时 R5 与
+`layout_exceptions.json` 同步修改，不在本阶段提前改口径。

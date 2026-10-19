@@ -100,7 +100,7 @@ stages:
           - name: Run_GPR_tests
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                --python prediction/SmallData \
+                --python experimental/SmallData \
                 -f pr_filelist.txt
         runs-on: ['self-hosted', 'arch=x64', 'spec=small']
         container:
@@ -126,9 +126,9 @@ stages:
           - name: Run_reference_tests
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                --reference-test prediction/ProcessControl/ \
+                --reference-test pid/,time_series/,molecular/ \
                 -f pr_filelist.txt \
-                --common-dirs="prediction/ProcessControl/PIDModelFit/common/ prediction/ProcessControl/TimeSeriesForecast/common/ prediction/ProcessControl/NonTemporalPrediction/"
+                --common-dirs="pid/common/ time_series/common/ molecular/"
         runs-on: ['self-hosted', 'arch=x64', 'spec=small']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/ubuntu20.04.05_x86:k8s_v1.1006
@@ -162,7 +162,7 @@ stages:
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
                 -f pr_filelist.txt --test \
-                --scope=simulation/AI4MD/
+                --scope=md/
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
@@ -188,8 +188,8 @@ stages:
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
                 -f pr_filelist.txt --test \
-                --scope=simulation/AI4PDE/ \
-                --common-dirs="simulation/AI4PDE/pde_common/"
+                --scope=pde/ \
+                --common-dirs="pde/pde_common/"
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
@@ -215,8 +215,8 @@ stages:
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
                 -f pr_filelist.txt --test \
-                --scope=prediction/ProcessControl/ \
-                --common-dirs="prediction/ProcessControl/PIDModelFit/common/ prediction/ProcessControl/TimeSeriesForecast/common/ prediction/ProcessControl/NonTemporalPrediction/"
+                --scope=pid/,time_series/,molecular/ \
+                --common-dirs="pid/common/ time_series/common/ molecular/"
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
@@ -241,7 +241,7 @@ stages:
           - name: Check_NPU_and_run_DAO_tests
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                --python simulation/MaterialPropertyPrediction/DAO \
+                --python experimental/DAO \
                 -f pr_filelist.txt
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:

@@ -28,7 +28,7 @@ bash build.sh --list
 python -m pytest tests/ut -q
 
 # Python 参考实现
-bash build.sh --python prediction/SmallData
+bash build.sh --python experimental/SmallData
 ```
 
 `--list` 会打印三类：可构建算子、Python 算子、暂缓构建的算子。
@@ -36,9 +36,9 @@ bash build.sh --python prediction/SmallData
 ## 3. 编译单个算子
 
 ```bash
-bash build.sh simulation/AI4MD/Lennard_Jones
-bash build.sh --ops=Lennard_Jones,pinn -j8
-bash build.sh --soc=Ascend910B3 simulation/AI4MD/GAFF2
+bash build.sh md/lennard_jones
+bash build.sh --ops=lennard_jones,pinn -j8
+bash build.sh --soc=Ascend910B3 md/gaff2
 ```
 
 产物在 `<op>/build/`。清理：
@@ -51,13 +51,13 @@ bash build.sh --clean --all
 
 ```bash
 # 编译 + ctest（需要 GTest；没有则只编译）
-bash build.sh --ops=Lennard_Jones --test
+bash build.sh --ops=lennard_jones --test
 
 # 只编译，不跑 ctest
-bash build.sh Lennard_Jones --build-only
+bash build.sh lennard_jones --build-only
 
 # 参考实现（CPU / pytest）
-bash build.sh --reference-test prediction/ProcessControl/ -f pr_filelist.txt -j8
+bash build.sh --reference-test pid/,time_series/,molecular/ -f pr_filelist.txt -j8
 ```
 
 `--reference-test` 的契约：有 `tests/` 的算子必须提供 `reference/reference.py` 或 `reference/__init__.py`；
@@ -76,8 +76,8 @@ bash build.sh -f pr_filelist.txt --test
 
 # 限定范围 + 声明共享目录
 bash build.sh -f pr_filelist.txt --test \
-  --scope=prediction/ProcessControl/ \
-  --common-dirs="prediction/ProcessControl/NonTemporalPrediction/"
+  --scope=pid/,time_series/,molecular/ \
+  --common-dirs="molecular/"
 
 # 纯文档 PR：直接短路，不编译
 bash build.sh -f pr_filelist.txt

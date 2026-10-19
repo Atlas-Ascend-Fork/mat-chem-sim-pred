@@ -50,8 +50,8 @@ Options:
   -j<N>              Parallel build jobs (default: nproc)
   -f <filelist>      File list for incremental build (one path per line)
   --ops=<ops>        Operator names, comma-separated
-  --scope=<prefix>   Path prefix filter (-f mode only); common-dir changes only
-                     rebuild operators under this prefix, not the whole repo
+  --scope=<prefixes> Path prefix filter, comma-separated (-f mode only); common-dir
+                     changes only rebuild operators under these prefixes
   --common-dirs=<dirs>  Shared dirs (space-separated); changes trigger full rebuild
   --python <op>      Python operator test via pytest
   --reference-test   Run pytest reference tests for CMake operators with tests/ dirs
@@ -61,13 +61,13 @@ Options:
 
 Examples:
   bash build.sh --list
-  bash build.sh simulation/AI4MD/Lennard_Jones
-  bash build.sh Lennard_Jones pinn
-  bash build.sh --ops=Lennard_Jones,pinn --test
+  bash build.sh md/lennard_jones
+  bash build.sh lennard_jones pinn
+  bash build.sh --ops=lennard_jones,pinn --test
   bash build.sh -f pr_filelist.txt --test
   bash build.sh --all -j16
-  bash build.sh --python prediction/SmallData -f pr_filelist.txt
-  bash build.sh --reference-test prediction/ProcessControl/ -f pr_filelist.txt
+  bash build.sh --python experimental/SmallData -f pr_filelist.txt
+  bash build.sh --reference-test pid/,time_series/,molecular/ -f pr_filelist.txt
 
 Note:
   - Operator families / exclusions / Python operators live in cmake/variables.cmake.

@@ -32,14 +32,14 @@ mat-chem-sim-pred 是 [CANN](https://hiascend.com/software/cann) 面向材料、
 
 | 能力族 | 目录 | 算子数 | 服务场景 |
 |---|---|---:|---|
-| 分子动力学基础计算（AI4MD） | `simulation/AI4MD/` | 6 | 经典力场、静电求和、约束、积分、耗散粒子动力学 |
-| AI for PDE（AI4PDE） | `simulation/AI4PDE/` | 3 | PINN / FNO / DeepONet 推理 |
-| PID 整定全流程（PIDModelFit） | `prediction/ProcessControl/PIDModelFit/` | 12 | 模型辨识 → 诊断 → 整定 → 仿真选优 → 评估 |
-| 时序预测（TimeSeriesForecast） | `prediction/ProcessControl/TimeSeriesForecast/` | 14 | SSM 扫描、lag 聚合、LSH 分桶、不支持路径替换 |
-| 图 / 点云 / 分子几何（NonTemporalPrediction） | `prediction/ProcessControl/NonTemporalPrediction/` | 26 | GNN 传播与注意力聚合、点云邻域、分子多体几何 |
+| 分子动力学基础计算（AI4MD） | `md/` | 6 | 经典力场、静电求和、约束、积分、耗散粒子动力学 |
+| AI for PDE（AI4PDE） | `pde/` | 3 | PINN / FNO / DeepONet 推理 |
+| PID 整定全流程（PIDModelFit） | `pid/` | 12 | 模型辨识 → 诊断 → 整定 → 仿真选优 → 评估 |
+| 时序预测（TimeSeriesForecast） | `time_series/` | 14 | SSM 扫描、lag 聚合、LSH 分桶、不支持路径替换 |
+| 图 / 点云 / 分子几何（NonTemporalPrediction） | `molecular/` | 26 | GNN 传播与注意力聚合、点云邻域、分子多体几何 |
 | **合计** | | **61** | 其中 60 个纳入构建；DPD 实现未完成，暂缓 CI |
 
-另有两个 Python 参考实现，不计入算子数：`simulation/MaterialPropertyPrediction/DAO`、`prediction/SmallData`（GP 回归 / 贝叶斯优化）。
+另有两个 Python 参考实现，不计入算子数：`experimental/DAO`、`experimental/SmallData`（GP 回归 / 贝叶斯优化）。
 
 > 规划中的方向（ML-MD、材料性质预测与结构生成等）见 [roadmap.md](roadmap.md)。
 
@@ -49,16 +49,19 @@ mat-chem-sim-pred 是 [CANN](https://hiascend.com/software/cann) 面向材料、
 mat-chem-sim-pred/
 ├── cmake/                  # 构建配置与算子族单一配置源（variables.cmake）
 ├── common/                 # 跨算子公共层（inc / src / tests）
-├── simulation/             # 科学计算：AI4MD、AI4PDE、材料性质预测参考实现
-├── prediction/             # 预测优化：PIDModelFit、TimeSeriesForecast、NonTemporalPrediction
+├── md/                     # 分子动力学算子族（6）
+├── pde/                    # AI for PDE 算子族（3 + pde_common）
+├── molecular/              # 图 / 点云 / 分子几何算子族（26）
+├── pid/                    # PID 整定算子族（12）
+├── time_series/            # 时序预测算子族（14）
 ├── docs/zh/                # 文档中心：快速入门、算子清单、目录说明
-├── examples/               # 跨算子示例（当前仅占位，Step 3 落可编译骨架）
-├── experimental/           # 未成熟能力隔离区，默认不参与构建
+├── examples/               # 跨算子示例（当前仅占位）
+├── experimental/           # 未成熟能力与 PyTorch 参考实现（DAO、SmallData）
 ├── scripts/                # build.sh 的实现：构建、增量、Python / reference 测试
 ├── tests/ut/               # 全仓目录契约测试（无需 CANN/NPU）
 ├── template/               # 算子文档与代码模板
 ├── tutorial/               # 教程 notebook
-├── CMakeLists.txt          # 顶层入口（公共层 + 可选算子聚合）
+├── CMakeLists.txt          # 顶层入口：公共层 + 算子聚合
 ├── build.sh                # 统一构建入口
 └── .gitcode/               # issue / PR 模板与 CI 工作流
 ```
@@ -100,16 +103,19 @@ bash build.sh --list
 python -m pytest tests/ut -q
 
 # 3. 编译单个算子（需要 CANN）
-bash build.sh simulation/AI4MD/Lennard_Jones
+bash build.sh md/lennard_jones
 
 # 4. 编译并跑 ctest（需要 CANN；GTest 缺失时自动跳过 UT）
-bash build.sh --ops=Lennard_Jones,pinn --test
+bash build.sh --ops=lennard_jones,pinn --test
 
 # 5. Python 参考实现测试（无需 NPU）
-bash build.sh --python prediction/SmallData
+bash build.sh --python experimental/SmallData
 
 # 6. 按文件清单增量跑参考测试
-bash build.sh --reference-test prediction/ProcessControl/ -f pr_filelist.txt -j8
+bash build.sh --reference-test pid/,time_series/,molecular/ -f pr_filelist.txt -j8
+
+# 7. 顶层聚合编译（需要 CANN；默认全部算子，也可 -DMATCHEM_OP=<path> 只编一个）
+cmake -S . -B build && cmake --build build -j
 ```
 
 更多参数：`bash build.sh --help`；增量与 CI 用法见 [docs/zh/QUICKSTART.md](docs/zh/QUICKSTART.md)。

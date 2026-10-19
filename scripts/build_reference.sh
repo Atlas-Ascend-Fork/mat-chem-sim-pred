@@ -39,7 +39,7 @@ if missing:
 PY
 
     for op in "${ALL_OPERATORS[@]}"; do
-        [ -n "$filter_prefix" ] && [[ "$op" != "$filter_prefix"* ]] && continue
+        matches_prefix "$op" "$filter_prefix" || continue
         [ -d "$op/tests" ] || continue
         if [ "$common_changed" = false ] && [ -n "$filelist" ] && [ -f "$filelist" ]; then
             grep -q "^${op}/" "$filelist" 2>/dev/null || continue

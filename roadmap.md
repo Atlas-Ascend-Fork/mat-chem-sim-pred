@@ -74,7 +74,7 @@
 | D3/D4 色散校正 | 基于坐标计算色散项和阻尼函数 | 规划中 |
 | 势能面在线拟合 | sGP 或贝叶斯线性回归的增量拟合 | 规划中 |
 
-> 仓库已有 `simulation/AI4MD/` 下的力场、静电、约束和积分等基础计算组件。这些组件属于 ML-MD 的基础设施，但不计入上表 7 个 ML 势模型条目的“已完成”数量。
+> 仓库已有 `md/` 下的力场、静电、约束和积分等基础计算组件。这些组件属于 ML-MD 的基础设施，但不计入上表 7 个 ML 势模型条目的“已完成”数量。
 
 ### AI for PDE
 
@@ -119,7 +119,7 @@
 |---|---|---|
 | PID 模型辨识与整定全流程 | 支持 FOPDT、IPDT、SOPDT 过程模型的批量辨识、残差诊断、Ziegler-Nichols/IMC/Cohen-Coon 参数生成、候选闭环仿真与评分、响应特征提取、控制性能和过程能力评估 | Ascend C 已实现 |
 
-> 仓库在 `prediction/ProcessControl/PIDModelFit/` 下提供 12 个独立 Ascend C 算子，并配套 CPU/NumPy reference、设计文档、测试报告和端到端验证工具。上表按完整 PID 整定能力链路归并计数。
+> 仓库在 `pid/` 下提供 12 个独立 Ascend C 算子，并配套 CPU/NumPy reference、设计文档、测试报告和端到端验证工具。上表按完整 PID 整定能力链路归并计数。
 
 ### 时序数据建模
 
@@ -132,9 +132,9 @@
 | 时序预训练 | 对比学习或掩码重建时序表征 | 规划中 |
 | 时序异常检测 | 基于 Autoencoder、VAE 或 Transformer 的异常检测 | 规划中 |
 
-> 仓库在 `prediction/ProcessControl/TimeSeriesForecast/` 下提供 13 个 Ascend C fused operators，覆盖 Mamba/SSM、Autoformer、Reformer、Koopa/DMD、TiRex/xLSTM、CfC、coRNN、SRU、UnICORNN 和 LTC 等模型或模型族。上表按模型或能力类别归并为 1 个已实现条目，不按 13 个独立算子重复计数。
+> 仓库在 `time_series/` 下提供 13 个 Ascend C fused operators，覆盖 Mamba/SSM、Autoformer、Reformer、Koopa/DMD、TiRex/xLSTM、CfC、coRNN、SRU、UnICORNN 和 LTC 等模型或模型族。上表按模型或能力类别归并为 1 个已实现条目，不按 13 个独立算子重复计数。
 
-> 仓库已有 `prediction/ProcessControl/TimeSeriesForecast/` 下多个时序计算组件，包括选择性扫描、lag 聚合、LSH 分桶和连续时间 RNN 扫描等实现；上表按“模型或能力类别”归并计数，不按算子数量重复计算。
+> 仓库已有 `time_series/` 下多个时序计算组件，包括选择性扫描、lag 聚合、LSH 分桶和连续时间 RNN 扫描等实现；上表按“模型或能力类别”归并计数，不按算子数量重复计算。
 
 ### 非时序图学习与预测
 
@@ -143,7 +143,7 @@
 | 图注意力与消息聚合 | GAT、GATv2、Graph Transformer、FiLM、LightGCN、Signed GCN 等 CSR 图注意力和消息聚合 | Ascend C 已实现 |
 | 稀疏图传播与谱图计算 | ARMA、超图注意力、ChebNet、GCNII、TAGCN 等稀疏传播、谱图基和残差计算 | Ascend C 已实现 |
 
-> 仓库在 `prediction/ProcessControl/NonTemporalPrediction/` 下提供图学习相关 Ascend C 算子，服务 Cora、MovieLens、Bitcoin 等图数据场景；上表将多种图模型组件归并为一个能力条目。
+> 仓库在 `molecular/` 下提供图学习相关 Ascend C 算子，服务 Cora、MovieLens、Bitcoin 等图数据场景；上表将多种图模型组件归并为一个能力条目。
 
 ### 点云和三维几何
 

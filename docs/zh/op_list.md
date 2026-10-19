@@ -5,26 +5,26 @@
 ## 统计口径
 
 - 算子目录：61 个（`op_host/` + `op_kernel/` 齐备的独立算子目录）。
-- 纳入构建：60 个；`simulation/AI4MD/Dissipative_particle_dynamics` 实现未完成，暂缓 CI（`cmake/variables.cmake` 的 `MATCHEM_SKIP_OPERATORS`）。
-- 另有两个 Python 参考实现不进算子计数：`simulation/MaterialPropertyPrediction/DAO`、`prediction/SmallData`。
+- 纳入构建：60 个；`md/dissipative_particle_dynamics` 实现未完成，暂缓 CI（`cmake/variables.cmake` 的 `MATCHEM_SKIP_OPERATORS`）。
+- 另有两个 Python 参考实现不进算子计数：`experimental/DAO`、`experimental/SmallData`。
 - 目录命名以实际路径为准；命名不合规的存量算子记录在 `tests/ut/layout_exceptions.json`，新增算子必须小写下划线。
 
-## 分子动力学基础计算（AI4MD）
+## 分子动力学（md）
 
-目录：`simulation/AI4MD/`；算子数：6。经典力场的力、静电、约束、积分与耗散粒子动力学。为 ML-MD 提供底层计算能力；不含机器学习势推理。
+目录：`md/`；算子数：6。经典力场的力、静电、约束、积分与耗散粒子动力学。为 ML-MD 提供底层计算能力；不含机器学习势推理。
 
 | 算子 | 说明 | 状态 |
 |---|---|---|
-| `Lennard_Jones` | Lennard-Jones 力场 | ✅ Ascend C |
-| `GAFF2` | GAFF2 力场 | ✅ Ascend C |
-| `PME` | PME 静电求和 | ✅ Ascend C |
-| `SHAKE` | SHAKE 约束算法 | ✅ Ascend C |
-| `velocity-verlet` | Velocity Verlet 积分器 | ✅ Ascend C |
-| `Dissipative_particle_dynamics` | DPD 耗散粒子动力学 | ✅ Ascend C（暂缓 CI） |
+| `lennard_jones` | Lennard-Jones 力场 | ✅ Ascend C |
+| `gaff2` | GAFF2 力场 | ✅ Ascend C |
+| `pme` | PME 静电求和 | ✅ Ascend C |
+| `shake` | SHAKE 约束算法 | ✅ Ascend C |
+| `velocity_verlet` | Velocity Verlet 积分器 | ✅ Ascend C |
+| `dissipative_particle_dynamics` | DPD 耗散粒子动力学 | ✅ Ascend C（暂缓 CI） |
 
-## AI for PDE（AI4PDE）
+## AI for PDE（pde）
 
-目录：`simulation/AI4PDE/`；算子数：3。PINN / FNO / DeepONet 的推理算子。
+目录：`pde/`；算子数：3。PINN / FNO / DeepONet 的推理算子。
 
 | 算子 | 说明 | 状态 |
 |---|---|---|
@@ -32,9 +32,9 @@
 | `fno` | FNO 傅里叶神经网络算子推理 | ✅ Ascend C |
 | `deeponet` | DeepONet 深度算子网络推理 | ✅ Ascend C |
 
-## PID 整定全流程（PIDModelFit）
+## PID 整定（pid）
 
-目录：`prediction/ProcessControl/PIDModelFit/`；算子数：12。12 个算子按模型辨识 → 诊断 → 整定 → 仿真选优 → 评估组织。
+目录：`pid/`；算子数：12。12 个算子按模型辨识 → 诊断 → 整定 → 仿真选优 → 评估组织。
 
 | 算子 | 说明 | 状态 |
 |---|---|---|
@@ -51,9 +51,9 @@
 | `pid_control_performance_metrics` | 控制性能指标（IAE/ISE/ITAE 等） | ✅ Ascend C |
 | `pid_process_capability_metrics` | 过程能力指数（Cp/Cpk 等） | ✅ Ascend C |
 
-## 时序预测模型（TimeSeriesForecast）
+## 时序预测（time_series）
 
-目录：`prediction/ProcessControl/TimeSeriesForecast/`；算子数：14。面向 DCS/传感器时序：SSM 扫描、lag 聚合、LSH 分桶与框架不支持路径下沉。
+目录：`time_series/`；算子数：14。面向 DCS/传感器时序：SSM 扫描、lag 聚合、LSH 分桶与框架不支持路径下沉。
 
 | 算子 | 说明 | 状态 |
 |---|---|---|
@@ -72,9 +72,9 @@
 | `autoformer_inference_aggregate_fused` | 均值归约 + TopK + softmax + 循环移位加权聚合融合 | ✅ Ascend C |
 | `mamba2_ssd_chunk_scan` | Mamba-2 SSD 分块扫描的四阶段 Cube-Vector 融合（910B/950） | ✅ Ascend C |
 
-## 非时序预测：图、点云与分子几何（NonTemporalPrediction）
+## 图、点云与分子几何（molecular）
 
-目录：`prediction/ProcessControl/NonTemporalPrediction/`；算子数：26。把 PyG / PointNet++ / DimeNet / GemNet 的稀疏图传播、注意力聚合、邻域查询与多体几何下沉为单 kernel。
+目录：`molecular/`；算子数：26。把 PyG / PointNet++ / DimeNet / GemNet 的稀疏图传播、注意力聚合、邻域查询与多体几何下沉为单 kernel。
 
 | 算子 | 说明 | 状态 |
 |---|---|---|
