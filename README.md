@@ -12,32 +12,55 @@
 
 ## 🔥 最新动态
 
+- [2026/10] 仓库定位扩展为**面向工业制造的研发与生产**，不再限定流程工业；新增研发域 / 生产域能力映射、行业覆盖矩阵与质量 / 设备 / 运行三类规划方向（见 [roadmap.md](roadmap.md)）。
 - [2026/10] 仓库骨架对齐 CANN 算子仓：新增顶层 CMake 入口、`common/` 公共层、`docs/` 文档中心与目录契约测试；算子族 / 例外 / 共享目录收敛到 `cmake/variables.cmake` 单一配置源。
 - [2026/10] 补齐 7 个已入库算子的清单登记（Mamba-2 SSD 分块扫描、AttentionalAggregation、AGNN / GENConv / SuperGAT、EdgePooling、SortAggregation），算子总数口径统一为 61。
 
 ## 🚀 概述
 
-mat-chem-sim-pred 是 [CANN](https://hiascend.com/software/cann) 面向材料、化学与流程工业的领域算子仓，交付可独立编译、可参考验证、可 benchmark 的 Ascend C 算子族。
+mat-chem-sim-pred 是 [CANN](https://hiascend.com/software/cann) 面向**工业制造**的领域算子仓：以材料、化学与过程工业为起点，服务工业制造中**研发**（设计、仿真、试制）与**生产**（控制、质量、运行优化）两类负载，把工业模型里"框架不支持或需要多次 kernel launch"的子图，下沉为可独立编译、可参考验证、可 benchmark 的 Ascend C 算子。
 
-核心定位：**AI4S 模型子图的 NPU 融合算子仓**——把 PyG、PointNet++、DimeNet/GemNet、Mamba/SSM、Autoformer、PID 整定等上游模型里"框架不支持或需要多次 kernel launch"的子图，下沉为单个 Ascend C kernel。
+核心定位：**工业制造模型的 NPU 融合算子底座**。上游是材料与分子模拟、PDE / 结构仿真、图与几何表征、过程控制、生产时序等工业模型；下游是 CANN 上的单 kernel 替换。
+
+仓库名 `mat-chem-sim-pred` 保留历史（材料 / 化学 / 模拟 / 预测）。能力边界已从流程工业扩展到工业制造的研发与生产；目录按能力族组织，不按行业切分——同一族可以服务材料、流程工业或离散制造。
 
 边界：
 
-- 收入：有明确 aclnn / Host API、有 CPU reference 与精度阈值、有性能口径的算子。
-- 不收：模型训练脚本、数据集、工具链与一次性实验代码；这些以 reference 或示例的形态留在仓外或 `experimental/`。
+- 收入：有明确工业任务、有 aclnn / Host API、有 CPU reference 与精度阈值、有性能口径的算子。
+- 不收：行业应用、工艺包、模型训练框架、数据集与一次性实验代码；这些以 reference 或示例的形态留在仓外或 `experimental/`。
+- 只解决"计算子图在 NPU 上跑得快且可验证"，不承担产线编排、MES/APC 集成或业务闭环。
 
 算子总数与逐项说明见 [docs/zh/op_list.md](docs/zh/op_list.md)。
 
+## 🏭 研发与生产两类负载
+
+| 阶段 | 典型任务 | 已落地算子族 | 规划方向 |
+|---|---|---|---|
+| 研发（设计 / 仿真 / 试制） | 分子与材料模拟、PDE / 结构 / 流体仿真、几何与结构表征、小数据寻优 | `md/`、`pde/`、`molecular/`、`experimental/` | ML 势、材料性质与结构生成、CAD / 网格几何、仿真代理 |
+| 生产（控制 / 质量 / 运行） | 过程控制与整定、生产时序预测、质量检测、设备健康、排产与能耗优化 | `pid/`、`time_series/` | 质量与检测、设备健康、生产运行优化 |
+
+行业覆盖（需求来源，不是目录划分）：
+
+| 行业 | 研发 | 生产 |
+|---|---|---|
+| 材料与化工 | 已覆盖：`md/`、`molecular/` | 已覆盖：`pid/`、`time_series/` |
+| 流程工业（冶金、建材、造纸等） | 部分覆盖：`pde/` | 已覆盖：`pid/`、`time_series/`；质量与运行规划中 |
+| 离散制造（装备、汽车、电子等） | 规划：`pde/`、`molecular/` 的几何能力可复用 | 规划：质量检测、设备健康、排产调度 |
+
+> 规划项的完整清单与状态见 [roadmap.md](roadmap.md)；已入库算子见 [docs/zh/op_list.md](docs/zh/op_list.md)。
+
 ## 📦 能力矩阵
 
-| 能力族 | 目录 | 算子数 | 服务场景 |
-|---|---|---:|---|
-| 分子动力学基础计算（AI4MD） | `md/` | 6 | 经典力场、静电求和、约束、积分、耗散粒子动力学 |
-| AI for PDE（AI4PDE） | `pde/` | 3 | PINN / FNO / DeepONet 推理 |
-| PID 整定全流程（PIDModelFit） | `pid/` | 12 | 模型辨识 → 诊断 → 整定 → 仿真选优 → 评估 |
-| 时序预测（TimeSeriesForecast） | `time_series/` | 14 | SSM 扫描、lag 聚合、LSH 分桶、不支持路径替换 |
-| 图 / 点云 / 分子几何（NonTemporalPrediction） | `molecular/` | 26 | GNN 传播与注意力聚合、点云邻域、分子多体几何 |
-| **合计** | | **61** | 其中 60 个纳入构建；DPD 实现未完成，暂缓 CI |
+| 能力族 | 目录 | 阶段 | 算子数 | 服务场景 |
+|---|---|---|---:|---|
+| 分子与材料模拟（AI4MD） | `md/` | 研发 | 6 | 经典力场、静电求和、约束、积分、耗散粒子动力学 |
+| 连续介质仿真（AI4PDE） | `pde/` | 研发 | 3 | PINN / FNO / DeepONet 推理；结构、流体、传热仿真代理的基础 |
+| 图 / 点云 / 分子几何（NonTemporalPrediction） | `molecular/` | 研发 | 26 | GNN 传播与注意力聚合、点云邻域、分子多体几何；可复用于 CAD / 扫描表征 |
+| PID 整定全流程（PIDModelFit） | `pid/` | 生产 | 12 | 模型辨识 → 诊断 → 整定 → 仿真选优 → 评估 |
+| 生产时序预测（TimeSeriesForecast） | `time_series/` | 生产 | 14 | SSM 扫描、lag 聚合、LSH 分桶、不支持路径替换；可用于工艺与设备信号 |
+| **合计** | | | **61** | 其中 60 个纳入构建；DPD 实现未完成，暂缓 CI |
+
+> 阶段说明：研发 = 设计、仿真、试制；生产 = 控制、质量、运行。规划中的生产域方向（质量检测、设备健康、运行优化）尚未形成算子族，见 roadmap。
 
 另有两个 Python 参考实现，不计入算子数：`experimental/DAO`、`experimental/SmallData`（GP 回归 / 贝叶斯优化）。
 
@@ -49,11 +72,11 @@ mat-chem-sim-pred 是 [CANN](https://hiascend.com/software/cann) 面向材料、
 mat-chem-sim-pred/
 ├── cmake/                  # 构建配置与算子族单一配置源（variables.cmake）
 ├── common/                 # 跨算子公共层（inc / src / tests）
-├── md/                     # 分子动力学算子族（6）
-├── pde/                    # AI for PDE 算子族（3 + pde_common）
-├── molecular/              # 图 / 点云 / 分子几何算子族（26）
-├── pid/                    # PID 整定算子族（12）
-├── time_series/            # 时序预测算子族（14）
+├── md/                     # 研发域：分子与材料模拟算子族（6）
+├── pde/                    # 研发域：连续介质仿真算子族（3 + pde_common）
+├── molecular/              # 研发域：图 / 点云 / 分子几何算子族（26）
+├── pid/                    # 生产域：PID 整定算子族（12）
+├── time_series/            # 生产域：生产时序算子族（14）
 ├── docs/zh/                # 文档中心：快速入门、算子清单、目录说明
 ├── examples/               # 跨算子示例（当前仅占位）
 ├── experimental/           # 未成熟能力与 PyTorch 参考实现（DAO、SmallData）

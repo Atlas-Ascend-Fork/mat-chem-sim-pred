@@ -23,6 +23,7 @@ docs/
 |---|---|
 | 在本机跑起来 | [QUICKSTART.md](QUICKSTART.md) → [install/quick_install.md](install/quick_install.md) |
 | 知道仓里有哪些算子 | [op_list.md](op_list.md) |
+| 理解仓库的研发/生产版图与规划 | [../../roadmap.md](../../roadmap.md) |
 | 理解过程控制场景的算子分布 | [appendix/process-control.md](appendix/process-control.md) |
 | 新增一个算子 | [appendix/dir_structure.md](appendix/dir_structure.md) → [../../CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | 改 CI 或本地门禁 | [QUICKSTART.md](QUICKSTART.md) 的"增量门禁"一节 |

@@ -50,13 +50,13 @@ mat-chem-sim-pred/
 
 一级目录即能力边界，不再按"科学计算 / 预测优化"分桶：
 
-| 族 | 服务对象 | 典型上游 |
-|---|---|---|
-| `md/` | 经典分子动力学 | LAMMPS / GROMACS 力场与积分器 |
-| `pde/` | PDE 神经算子推理 | PINN / FNO / DeepONet |
-| `molecular/` | 图、点云、分子几何 | PyG、PointNet++、DimeNet、GemNet |
-| `pid/` | 过程模型辨识与整定 | FOPDT / IPDT / SOPDT、ZN / IMC / CC |
-| `time_series/` | 时序预测子图 | Mamba、Autoformer、Reformer、CfC |
+| 族 | 阶段 | 服务对象 | 典型上游 |
+|---|---|---|---|
+| `md/` | 研发 | 经典分子动力学 | LAMMPS / GROMACS 力场与积分器 |
+| `pde/` | 研发 | 连续介质与 PDE 仿真 | PINN / FNO / DeepONet、结构/流体/传热代理 |
+| `molecular/` | 研发 | 图、点云、分子几何 | PyG、PointNet++、DimeNet、GemNet；可复用于 CAD / 扫描 |
+| `pid/` | 生产 | 过程模型辨识与整定 | FOPDT / IPDT / SOPDT、ZN / IMC / CC |
+| `time_series/` | 生产 | 生产时序与设备信号 | Mamba、Autoformer、Reformer、CfC |
 
 族的增删改在 `cmake/variables.cmake` 的 `MATCHEM_OP_CATEGORIES` 登记，构建脚本与 CMake 自动跟随。
 

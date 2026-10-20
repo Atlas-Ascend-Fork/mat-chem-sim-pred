@@ -10,7 +10,7 @@ See LICENSE in the root of the software repository for the full text of the Lice
 
 # AI4PDE — Schedule & Milestones
 
-> Based on [roadmap.md](../../roadmap.md) and [README.md](./README.md).
+> Based on [roadmap.md](../roadmap.md) and [README.md](./README.md).
 > Reference implementation patterns: `md/lennard_jones/`, `md/dissipative_particle_dynamics/`.
 > Target hardware: Ascend910B1, CANN >= 7.0.
 

@@ -179,4 +179,4 @@ $$(\mathcal{K}(\phi) v_t)(x) = \mathcal{F}^{-1}(R_\phi \cdot \mathcal{F}(v_t))(x
 - CFD 降阶模型算子（POD-RNN / Autoencoder-LSTM）
 - 扩散模型 PDE 求解算子（DiffusionPDE）
 
-> 详细规划与待迁移模型清单请参见 [roadmap.md](../../roadmap.md) 。
+> 详细规划与待迁移模型清单请参见 [roadmap.md](../roadmap.md) 。

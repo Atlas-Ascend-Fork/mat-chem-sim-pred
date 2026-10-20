@@ -8,6 +8,7 @@
 
 ### 变更
 
+- 文档：仓库定位从"材料/化学/流程工业"扩展为**工业制造的研发与生产**；README 新增研发域/生产域负载与行业覆盖矩阵；roadmap 重构为研发域（设计与仿真）与生产域（控制、质量与运行），新增质量检测、设备健康、生产运行优化三类规划方向；AGENTS/CONTRIBUTING/目录说明同步口径。
 - 算子族从 `simulation/<方向>/` + `prediction/ProcessControl/<方向>/` 收平为
   `md/`、`pde/`、`molecular/`、`pid/`、`time_series/` 五个一级目录。
 - 6 个存量算子目录改为小写下划线：`lennard_jones`、`gaff2`、`pme`、`shake`、

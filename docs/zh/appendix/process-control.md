@@ -1,21 +1,35 @@
-# 工业过程控制算子（Process Control）
+# 工业生产：控制、质量与运行
 
-本目录面向化工、能源、材料制造中的工业过程控制场景，聚焦模型辨识、控制器整定、在线预测与优化调度等任务。
+本页面向化工、能源、材料与离散制造中的生产环节，聚焦模型辨识、控制器整定、在线预测、质量与设备健康、运行优化等任务。
 
-## 当前算子
+> v0.2.0 起，原 `prediction/ProcessControl/` 已按能力拆为三个一级算子族：
+> `pid/`、`time_series/`、`molecular/`。本页只保留**生产域**的场景视角；
+> 研发域（设计、仿真、试制）见 [dir_structure.md](dir_structure.md) 与 [roadmap.md](../../../roadmap.md)。
 
-| 方向 | 算子/模型 | 状态 | 说明 |
-|------|-----------|------|------|
-| PID 模型辨识 | [PIDModelFit](PIDModelFit/README.md) | ✅ Ascend C 就绪 | 面向 FOPDT/IPDT/SOPDT 低阶过程模型的多回路、多候选并行辨识（12 个算子） |
-| 时序预测模型 | [TimeSeriesForecast](TimeSeriesForecast/README.md) | ✅ Ascend C 就绪 | 面向 SSM/Mamba、Autoformer/Reformer 等预测模型的高价值 fused operators（13 个算子） |
-| 非时序预测模型 | [NonTemporalPrediction](NonTemporalPrediction/) | ✅ Ascend C 就绪 | 面向图学习（GAT/GATv2/GraphSAGE/LightGCN 等）、点云（PointNet++/PPFNet）与分子图几何（DimeNet/GemNet）的 CSR 稀疏传播与注意力聚合 fused operators（20 个算子，目录暂无汇总 README，见各算子子目录） |
+## 已落地算子族
 
-> ✅ Ascend C 就绪 = 已完成 Ascend C 算子开发，含完整测试（状态含义与仓库根 README 一致）。
+| 方向 | 算子族 | 阶段 | 状态 | 说明 |
+|------|--------|------|------|------|
+| PID 模型辨识与整定 | [pid/](../../../pid/README.md) | 生产 | ✅ Ascend C | FOPDT/IPDT/SOPDT 多回路多候选辨识、诊断、整定、闭环选优与评估（12 个算子） |
+| 生产时序预测 | [time_series/](../../../time_series/README.md) | 生产 | ✅ Ascend C | SSM/Mamba 扫描、Autoformer/Reformer 聚合、连续时间 RNN 扫描融合（14 个算子） |
+| 图 / 点云 / 分子几何 | [molecular/](../../../molecular/README.md) | 研发 | ✅ Ascend C | GNN 稀疏传播与注意力聚合、点云邻域、分子多体几何（26 个算子）；生产侧可用于质量与设备数据的图表征 |
+
+> ✅ Ascend C = 已完成 Ascend C 算子开发，含测试；逐项状态以 [op_list.md](../op_list.md) 为准。
+
+## 生产域规划方向
+
+| 方向 | 典型任务 | 状态 |
+|------|----------|------|
+| 质量与检测 | 表面缺陷、尺寸与形位、装配完整性、在线成分/光谱 | 规划中 |
+| 设备健康与运维 | 振动/电流特征、剩余寿命、异常工况、故障根因 | 规划中 |
+| 生产运行优化 | 排产调度、能耗与公用工程、物料平衡、多目标工艺参数 | 规划中 |
+
+> 规划项只有在存在稳定的 kernel 级热点时才进本仓；纯编排、纯优化类能力留在上层应用。
 
 ## 典型场景
 
 - 批量回路整定：一次性对装置中多条温度、压力、流量、液位回路进行候选模型筛选。
 - 在线自整定：滚动窗口数据到达后，快速刷新过程模型参数，为 PID 参数整定提供基础。
 - 仿真平台评估：在工艺仿真、数字孪生或控制策略搜索中，对大量候选参数进行批量打分。
-- 在线时序预测：针对 torch_npu/PyTorch 框架路径中无法高效表达的 scan、autocorrelation 和 LSH 分桶子图提供 fused operator。
-- 非时序图学习与几何推理：为图神经网络的稀疏传播/注意力聚合、点云邻域查询与分子图多体几何计算提供可复用的 NPU fused operator。
+- 在线时序预测：为 torch_npu/PyTorch 路径中无法高效表达的 scan、autocorrelation 和 LSH 分桶子图提供 fused operator。
+- 质量与设备信号：把振动、电流、光谱等高频序列的特征计算下沉为单 kernel，供上层检测与诊断模型调用。

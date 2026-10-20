@@ -4,9 +4,9 @@
 
 ## 1. 仓库与工作边界
 
-- 这是基于 CANN / Ascend C 的材料、化学、科学计算与预测优化算子仓库，主要代码位于 `simulation/` 与 `prediction/`。
-- 顶层 `CMakeLists.txt` 只配置公共层 `common/` 与可选的算子聚合；日常构建仍走 `bash build.sh <op>`，每个算子目录保持独立配置、编译和测试的能力。
-- 可选的 `cmake -S . -B build -DMATCHEM_BUILD_OPS=ON` 是实验性聚合模式，只有完成算子 CMake 契约迁移（roadmap Step 3）后才会成为默认入口。
+- 这是基于 CANN / Ascend C 的**工业制造**领域算子仓库：以材料、化学与过程工业为起点，服务研发（设计、仿真、试制）与生产（控制、质量、运行优化）两类负载；算子按能力族放在 `md/`、`pde/`、`molecular/`、`pid/`、`time_series/` 五个一级目录。
+- 顶层 `CMakeLists.txt` 默认聚合全部算子（需 CANN）；日常单算子构建仍走 `bash build.sh <op>`，每个算子目录也能通过 `cmake -S <op>` 独立配置。
+- 只想配置公共层、不装 CANN 时，用 `cmake -S . -B build -DMATCHEM_BUILD_OPS=OFF`。
 - 修改前先阅读目标目录的 `README.md`、`CMakeLists.txt`、`docs/`、`tests/` 及相邻同类算子；优先复用同级 `common/` 中确有跨算子共性的逻辑。
 - 不要擅自修改无关算子、批量格式化全仓库、提交构建产物、临时脚本、日志或测试缓存。
 - 不要将探索性原型与正式交付算子混在同一 PR；公开算子保持独立目录、Host API、kernel 入口和测试。
@@ -33,6 +33,7 @@
 
 - 以 `template/` 中的 `operator_example.md`、`algorithm.md`、`test_architecture.md` 为模板。
 - 算子族、暂缓算子、Python 算子与共享目录登记在 `cmake/variables.cmake`；新增算子无需修改 `build.sh` 或顶层 `CMakeLists.txt`。
+- 每个算子族在其 `README.md` 声明服务阶段（研发 / 生产）与“不在本族范围”的内容；新方向先说明对应工业任务，再决定是否建族。
 - 算法、reference、Host API 和 kernel 实现必须语义一致；不得为了通过测试而让 reference 反向拟合当前错误实现。
 - `README.md` 至少说明功能、应用场景、输入输出、构建与测试命令、性能摘要。
 - `docs/algorithm.md` 说明数学定义、边界条件和 NPU 实现策略；`api_reference.md` 说明 API、shape、dtype、workspace 与错误条件；`benchmark.md` 说明环境、命令、规模、计时口径和性能数据。

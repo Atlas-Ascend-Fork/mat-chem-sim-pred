@@ -16,7 +16,7 @@ See LICENSE in the root of the software repository for the full text of the Lice
 
 ## 1 仓库定位与已有算子
 
-mat-chem-sim-pred 是基于华为 CANN（Ascend C）计算框架的化工行业专用算子库，聚焦**科学计算**与**预测优化**两大方向，构建"模拟 → 数据 → 预测 → 设计 → 优化"的全链路化工 AI 算子体系。仓库整体采用 [Apache 2.0](https://www.apache.org/licenses/) 许可证；按 CANN 社区惯例，所有源文件版权声明头使用 CANN Open Software License Agreement Version 2.0 格式（详见第 7 节）。
+mat-chem-sim-pred 是基于华为 CANN（Ascend C）计算框架的工业制造算子库，聚焦工业制造的**研发**（设计、仿真、试制）与**生产**（控制、质量、运行优化）两类负载；以材料、化学与过程工业为起点，逐步覆盖流程工业与离散制造。仓库整体采用 [Apache 2.0](https://www.apache.org/licenses/) 许可证；按 CANN 社区惯例，所有源文件版权声明头使用 CANN Open Software License Agreement Version 2.0 格式（详见第 7 节）。
 
 ### 1.1 仓库结构
 

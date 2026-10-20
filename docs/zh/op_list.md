@@ -8,6 +8,7 @@
 - 纳入构建：60 个；`md/dissipative_particle_dynamics` 实现未完成，暂缓 CI（`cmake/variables.cmake` 的 `MATCHEM_SKIP_OPERATORS`）。
 - 另有两个 Python 参考实现不进算子计数：`experimental/DAO`、`experimental/SmallData`。
 - 目录命名以实际路径为准；命名不合规的存量算子记录在 `tests/ut/layout_exceptions.json`，新增算子必须小写下划线。
+- 阶段口径：研发域 = `md/`、`pde/`、`molecular/`（设计、仿真、试制）；生产域 = `pid/`、`time_series/`（控制、质量、运行）。
 
 ## 分子动力学（md）
 
