@@ -8,7 +8,38 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
-# Python 算子测试：自动探测 test_ops.py / test_gpr.py / tests/。
+# 判断 Python 算子是否必须跑在 NPU 上。
+python_op_needs_npu() {
+    local op="$1" nop
+    for nop in "${NPU_PYTHON_OPERATORS[@]}"; do
+        [ "$op" = "$nop" ] && return 0
+    done
+    return 1
+}
+
+# 聚合模式：跑受影响的 Python 算子测试 + 受影响的 reference 测试。
+# device=cpu 跳过 NPU 算子；device=npu 只跑 NPU 算子且不做 reference 校验。
+run_python_tests_all() {
+    local filelist="$1" device="${2:-cpu}" rc=0 op ran=0
+    for op in "${PYTHON_OPERATORS[@]}"; do
+        case "$device" in
+            cpu) python_op_needs_npu "$op" && continue ;;
+            npu) python_op_needs_npu "$op" || continue ;;
+        esac
+        if [ -n "$filelist" ] && [ -f "$filelist" ]; then
+            grep -q "^${op}/" "$filelist" 2>/dev/null || continue
+        fi
+        ran=$((ran + 1))
+        run_python_test "$op" "" || rc=1
+    done
+    if [ "$ran" -eq 0 ] && [ -z "$filelist" ]; then
+        echo "[WARN] No Python operators matched device=${device} in cmake/variables.cmake"
+    fi
+    if [ "$device" != npu ]; then
+        run_reference_tests "$filelist" "" "$COMMON_DIRS" || rc=1
+    fi
+    return $rc
+}
 
 run_python_test() {
     local op="$1" filelist="$2" python_bin

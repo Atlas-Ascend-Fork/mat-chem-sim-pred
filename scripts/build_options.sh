@@ -23,9 +23,15 @@ BUILD_ONLY="${BUILD_ONLY:-false}"
 FILELIST=""
 OPS_BY_NAME=""
 PYTHON_OP=""
+PYTHON_TESTS=false
+PYTHON_TESTS_DEVICE="cpu"
 COMMON_DIRS=""
 SCOPE=""
 REFERENCE_TEST=false
+UT_MODE="auto"           # auto | required | off
+REFERENCE_MODE="required" # auto | required | off
+SHARD_INDEX=1
+SHARD_TOTAL=1
 OPERATORS=()
 
 usage() {
@@ -41,6 +47,7 @@ Usage:
   bash build.sh -f <filelist>            Incremental build from file list
   bash build.sh --ops=op1,op2,...        Build by operator names
   bash build.sh --python <operator>      Python operator pytest test
+  bash build.sh --python-tests           Run all affected Python + reference tests
   bash build.sh --reference-test [prefix] Run pytest reference tests for operators
 
 Options:
@@ -50,29 +57,48 @@ Options:
   -j<N>              Parallel build jobs (default: nproc)
   -f <filelist>      File list for incremental build (one path per line)
   --ops=<ops>        Operator names, comma-separated
-  --scope=<prefixes> Path prefix filter, comma-separated (-f mode only); common-dir
-                     changes only rebuild operators under these prefixes
-  --common-dirs=<dirs>  Shared dirs (space-separated); changes trigger full rebuild
+  --scope=<prefixes> Path prefix filter, comma-separated (-f mode only)
+  --common-dirs=<dirs>  Shared dirs (space-separated); default: all <family>/common
+                     plus the DirectMatchDir roots from cmake/variables.cmake
   --python <op>      Python operator test via pytest
+  --python-tests[=cpu|npu|all]  Run affected Python + reference tests (default: cpu)
   --reference-test   Run pytest reference tests for CMake operators with tests/ dirs
+  --reference=<mode> required | auto | off (default: required)
+                     auto: only enforce reference/ when tests actually import it
+  --ut=<mode>        auto | required | off (default: auto)
+                     auto: skip UT when GTest is missing; required: fail instead
+  --shard=<i>/<N>    Build only shard i of N from the affected operator list
   --build-only       Build only, skip ctest
-  --skip-check       Skip "md/tests-only" check for -f mode
+  --skip-check       Skip "md-only" check for -f mode
   -h, --help         Show this help
 
 Examples:
   bash build.sh --list
   bash build.sh md/lennard_jones
-  bash build.sh lennard_jones pinn
   bash build.sh --ops=lennard_jones,pinn --test
-  bash build.sh -f pr_filelist.txt --test
+  bash build.sh -f pr_filelist.txt --test --ut=required
+  bash build.sh -f pr_filelist.txt --test --shard=1/2
+  bash build.sh -f pr_filelist.txt --python-tests --reference=auto
   bash build.sh --all -j16
-  bash build.sh --python experimental/SmallData -f pr_filelist.txt
-  bash build.sh --reference-test pid/,time_series/,molecular/ -f pr_filelist.txt
 
 Note:
   - Operator families / exclusions / Python operators live in cmake/variables.cmake.
-  - Adding an operator needs no change to this script.
+  - Adding an operator needs no change to this script or the CI workflow.
 EOF
+}
+
+parse_shard() {
+    local value="$1" index total
+    case "$value" in
+        */*) index="${value%%/*}"; total="${value##*/}" ;;
+        *) die "--shard expects <i>/<N>, got: $value" ;;
+    esac
+    case "$index" in ''|*[!0-9]*) die "--shard index must be an integer" ;; esac
+    case "$total" in ''|*[!0-9]*) die "--shard total must be an integer" ;; esac
+    [ "$total" -ge 1 ] && [ "$total" -le 16 ] || die "--shard total must be 1..16"
+    [ "$index" -ge 1 ] && [ "$index" -le "$total" ] || die "--shard index must be 1..$total"
+    SHARD_INDEX="$index"
+    SHARD_TOTAL="$total"
 }
 
 parse_args() {
@@ -94,7 +120,31 @@ parse_args() {
                 PYTHON_OP="${1:-}"
                 [ -n "$PYTHON_OP" ] || die "--python requires an operator path"
                 ;;
+            --python-tests)  PYTHON_TESTS=true ;;
+            --python-tests=*)
+                PYTHON_TESTS=true
+                PYTHON_TESTS_DEVICE="${1#--python-tests=}"
+                case "$PYTHON_TESTS_DEVICE" in
+                    cpu|npu|all) ;;
+                    *) die "--python-tests must be cpu|npu|all" ;;
+                esac
+                ;;
             --reference-test) REFERENCE_TEST=true ;;
+            --reference=*)
+                REFERENCE_MODE="${1#--reference=}"
+                case "$REFERENCE_MODE" in
+                    auto|required|off) ;;
+                    *) die "--reference must be auto|required|off" ;;
+                esac
+                ;;
+            --ut=*)
+                UT_MODE="${1#--ut=}"
+                case "$UT_MODE" in
+                    auto|required|off) ;;
+                    *) die "--ut must be auto|required|off" ;;
+                esac
+                ;;
+            --shard=*)       parse_shard "${1#--shard=}" ;;
             -f)
                 shift
                 FILELIST="${1:-}"

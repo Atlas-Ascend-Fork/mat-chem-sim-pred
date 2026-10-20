@@ -19,9 +19,14 @@ build_single() {
     fi
     echo "[BUILD] $op (SOC=$SOC_VERSION, type=$BUILD_TYPE, jobs=$JOBS)"
 
-    # 仅 --test、算子含 tests/ 且 GTest 可用时才编译单元测试
-    if [ "$BUILD_ONLY" != "true" ] && [ "$RUN_TEST" = true ] && [ -d "$op/tests" ] && [ "$HAS_GTEST" = true ]; then
-        want_tests=true
+    # UT 策略：--ut=off 不编 UT；required 缺 GTest 直接失败；auto 缺 GTest 跳过。
+    if [ "$BUILD_ONLY" != "true" ] && [ "$RUN_TEST" = true ] && [ "$UT_MODE" != "off" ] && [ -d "$op/tests" ]; then
+        if [ "$HAS_GTEST" = true ]; then
+            want_tests=true
+        elif [ "$UT_MODE" = required ]; then
+            echo "[FAIL] $op — GTest is required (--ut=required) but not found"
+            return 1
+        fi
     fi
 
     local args=(-S "$op" -B "$op/build"

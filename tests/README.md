@@ -22,7 +22,7 @@ python -m pytest tests/ut -q
 - R2 算子目录名小写下划线；
 - R3 每个算子有 README；
 - R4 每个算子有 tests/；
-- R5 有 tests/ 的算子有 reference/；
+- R5 测试引用 `reference` 的算子必须有 `reference/`（`--reference=auto` 只对这类算子强制；`required` 一律强制）；
 - R6 仓库不跟踪构建产物。
 
 已存在的缺口写在 `layout_exceptions.json`。规则是**棘轮**：缺口可以修掉，但不能新增——

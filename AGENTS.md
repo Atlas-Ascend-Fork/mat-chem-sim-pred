@@ -100,7 +100,7 @@ ctest --test-dir <op>/build --output-on-failure
 
 | 工作流 | 实际覆盖内容 |
 |---|---|
-| `mat-chem-sim-pred_actions.yml` | 唯一流水线，四段：PreBuild（镜像与 PR 文件清单）→ CodeCheck（pre-commit + 社区 SCA/CodeCheck）→ ReferenceTest（pytest 参考实现）→ AscendCBuildTest（ARM 上 Ascend C 编译 + NPU 用例） |
+| `mat-chem-sim-pred_actions.yml` | 唯一流水线，四段：PreBuild（镜像与 PR 文件清单）→ CodeCheck（pre-commit + 社区 SCA/CodeCheck）→ Test（x86：Python 算子 + 受影响的 reference 测试）→ AscendCBuildTest（ARM：分片编译 + ctest，另有 NPU Python job）。跑哪些算子、要不要强制 UT，由 `build.sh` 从 filelist 和 `cmake/variables.cmake` 推导；workflow 不写族名。 |
 
 - 本地复刻同一份门禁：`.local-ci/ci-local.sh`（不随仓提交），编排与上述四段一致，构建仍调用 `build.sh`。
 

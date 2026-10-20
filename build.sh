@@ -42,6 +42,9 @@ discover_operators
 parse_args "$@"
 source_cann_env
 
+# 未显式指定共享目录时，使用 cmake/variables.cmake 推导出的默认值。
+[ -n "$COMMON_DIRS" ] || COMMON_DIRS="${DEFAULT_COMMON_DIRS[*]}"
+
 # ---------------------------------------------------------------------------
 # 列举算子
 # ---------------------------------------------------------------------------
@@ -64,6 +67,18 @@ fi
 # ---------------------------------------------------------------------------
 if [ -n "$PYTHON_OP" ]; then
     run_python_test "$PYTHON_OP" "$FILELIST"
+    exit $?
+fi
+
+# ---------------------------------------------------------------------------
+# 聚合测试模式：x86 CI 单 job 使用
+# ---------------------------------------------------------------------------
+if [ "$PYTHON_TESTS" = true ]; then
+    if [ -n "$FILELIST" ] && [ -f "$FILELIST" ] && [ "$SKIP_CHECK" = false ] && should_skip_docs_only "$FILELIST"; then
+        echo "[SKIP] File list contains only .md files, skip Python and reference tests"
+        exit 0
+    fi
+    run_python_tests_all "$FILELIST" "$PYTHON_TESTS_DEVICE"
     exit $?
 fi
 
@@ -152,6 +167,13 @@ if [ ${#OPERATORS[@]} -eq 0 ]; then
     exit 0
 fi
 
+# 分片：workflow 只决定并发度，具体算子由 build.sh 选。
+apply_shard
+if [ ${#OPERATORS[@]} -eq 0 ]; then
+    echo "[SKIP] No operators assigned to shard ${SHARD_INDEX}/${SHARD_TOTAL}"
+    exit 0
+fi
+
 # ---------------------------------------------------------------------------
 # 清理模式
 # ---------------------------------------------------------------------------
@@ -170,10 +192,13 @@ fi
 if gtest_available; then
     HAS_GTEST=true
 fi
-if [ "$RUN_TEST" = true ] && [ "$HAS_GTEST" != true ]; then
+if [ "$RUN_TEST" = true ] && [ "$UT_MODE" = required ] && [ "$HAS_GTEST" != true ]; then
+    die "UT is required (--ut=required) but GTest was not found on this machine"
+fi
+if [ "$RUN_TEST" = true ] && [ "$UT_MODE" = auto ] && [ "$HAS_GTEST" != true ]; then
     for op in "${OPERATORS[@]}"; do
         if [ -d "$op/tests" ]; then
-            log_warn "GTest not found; unit tests are skipped (-DBUILD_TESTS=OFF)"
+            log_warn "GTest not found; unit tests are skipped (-DBUILD_TESTS=OFF). Use --ut=required to fail instead."
             break
         fi
     done

@@ -62,6 +62,30 @@ matches_prefix() {
     return 1
 }
 
+# 判断算子的测试是否真的引用 reference/（用于 --reference=auto）。
+op_tests_use_reference() {
+    local op="$1"
+    [ -d "$op/tests" ] || return 1
+    grep -RqsE \
+        '(from|import)[[:space:]]+reference([[:space:].]|$)|reference/reference\.py|["'"'"'/]reference["'"'"'/]' \
+        "$op/tests" --include='*.py'
+}
+
+# 按分片筛选算子列表：index%N == i-1。workflow 只决定并发度，不决定族。
+apply_shard() {
+    [ "${SHARD_TOTAL:-1}" -gt 1 ] || return 0
+    local -a selected=()
+    local index=0 op
+    for op in "${OPERATORS[@]}"; do
+        if [ $((index % SHARD_TOTAL)) -eq $((SHARD_INDEX - 1)) ]; then
+            selected+=("$op")
+        fi
+        index=$((index + 1))
+    done
+    echo "[INFO] Shard ${SHARD_INDEX}/${SHARD_TOTAL}: ${#selected[@]} of ${#OPERATORS[@]} operator(s)"
+    OPERATORS=("${selected[@]}")
+}
+
 # 判断目录是否为 DirectMatchDir（忽略调用方传入的尾部斜杠）
 is_direct_match_dir() {
     local candidate="${1%/}" dir
@@ -75,8 +99,19 @@ is_direct_match_dir() {
 
 # 共享目录是否有变更：DirectMatchDir 只认直接文件，普通目录按前缀。
 common_dirs_changed() {
-    local filelist="$1" common_dirs_str="$2" cdir prefix
-    [ -n "$common_dirs_str" ] && [ -f "$filelist" ] || return 1
+    local filelist="$1" common_dirs_str="$2" cdir prefix gpath
+    [ -f "$filelist" ] || return 1
+
+    # 顶层 CMake / cmake/ 变化影响所有算子，不能因为不在算子路径下就跳过。
+    for gpath in "${GLOBAL_BUILD_PATHS[@]}"; do
+        if [ -d "${REPO_ROOT}/${gpath}" ]; then
+            grep -q "^${gpath}/" "$filelist" 2>/dev/null && return 0
+        else
+            grep -qxF "$gpath" "$filelist" 2>/dev/null && return 0
+        fi
+    done
+
+    [ -n "$common_dirs_str" ] || return 1
     for cdir in $common_dirs_str; do
         prefix="${cdir%/}"
         if is_direct_match_dir "$prefix"; then

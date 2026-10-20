@@ -76,11 +76,12 @@ stages:
     fail-fast: false
 
   stage3:
-    name: ReferenceTest
+    name: Test
     jobs:
-      # Python 算子测试（build.sh 统一入口）
-      JOB_pytorch:
-        name: PyTorch_Reference_Tests
+      # x86 聚合测试：Python 算子 + 受影响的 reference 测试。
+      # 跑哪些算子由 build.sh 从 filelist 推导，workflow 不再写族名或共享目录。
+      JOB_python:
+        name: Python_and_Reference_Tests
         steps:
           - name: Checkout_code
             identifier: process_checkout
@@ -97,38 +98,11 @@ stages:
               secret-key: ${{ secrets.SK }}
               key: "${{ env.obs_path }}/pr_filelist.txt"
               path: ${{ steps.process_checkout.outputs.path }}
-          - name: Run_GPR_tests
+          - name: Run_python_and_reference_tests
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                --python experimental/SmallData \
-                -f pr_filelist.txt
-        runs-on: ['self-hosted', 'arch=x64', 'spec=small']
-        container:
-          image: swr.cn-north-4.myhuaweicloud.com/ci_cann/ubuntu20.04.05_x86:k8s_v1.1006
-      JOB_prediction_reference:
-        name: Prediction_Reference_Tests
-        steps:
-          - name: Checkout_code
-            identifier: process_checkout
-            uses: checkout
-            with:
-              ref: ${{ atomgit.event.pull_request.merge_commit_sha }}
-              allow-unsafe-pr-checkout: true
-          - name: Download_pr_filelist
-            uses: obs-download
-            with:
-              endpoint: "https://obs.cn-north-4.myhuaweicloud.com"
-              bucket: "ascend-ci"
-              access-key: ${{ secrets.AK }}
-              secret-key: ${{ secrets.SK }}
-              key: "${{ env.obs_path }}/pr_filelist.txt"
-              path: ${{ steps.process_checkout.outputs.path }}
-          - name: Run_reference_tests
-            run: |
-              bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                --reference-test pid/,time_series/,molecular/ \
-                -f pr_filelist.txt \
-                --common-dirs="pid/common/ time_series/common/ molecular/"
+                -f pr_filelist.txt --python-tests \
+                --reference=auto --ut=auto
         runs-on: ['self-hosted', 'arch=x64', 'spec=small']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/ubuntu20.04.05_x86:k8s_v1.1006
@@ -139,9 +113,10 @@ stages:
   stage4:
     name: AscendCBuildTest
     jobs:
-      # ARM 算子编译测试（build.sh 统一入口）
-      JOB_ai4md:
-        name: AI4MD_Build_and_Test
+      # ARM 编译 + ctest。shard 只表示并发度，不表示族；
+      # 新增族不需要改本文件，build.sh 会从 cmake/variables.cmake 发现。
+      JOB_build_1:
+        name: AscendC_Build_and_Test_1
         steps:
           - name: Checkout_code
             identifier: process_checkout
@@ -161,13 +136,12 @@ stages:
           - name: Build_and_Test
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                -f pr_filelist.txt --test \
-                --scope=md/
+                -f pr_filelist.txt --test --shard=1/2 --ut=auto
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
-      JOB_ai4pde:
-        name: AI4PDE_Build_and_Test
+      JOB_build_2:
+        name: AscendC_Build_and_Test_2
         steps:
           - name: Checkout_code
             identifier: process_checkout
@@ -187,14 +161,14 @@ stages:
           - name: Build_and_Test
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                -f pr_filelist.txt --test \
-                --scope=pde/ \
-                --common-dirs="pde/pde_common/"
+                -f pr_filelist.txt --test --shard=2/2 --ut=auto
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
-      JOB_prediction:
-        name: Prediction_Build_and_Test
+      # 需要 NPU 的 Python 算子（cmake/variables.cmake 的 NPU 列表）。
+      # 设备分类写在配置里，workflow 只按设备类型分 job。
+      JOB_npu:
+        name: NPU_Python_Tests
         steps:
           - name: Checkout_code
             identifier: process_checkout
@@ -211,38 +185,10 @@ stages:
               secret-key: ${{ secrets.SK }}
               key: "${{ env.obs_path }}/pr_filelist.txt"
               path: ${{ steps.process_checkout.outputs.path }}
-          - name: Build_and_Test
+          - name: Run_npu_python_tests
             run: |
               bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                -f pr_filelist.txt --test \
-                --scope=pid/,time_series/,molecular/ \
-                --common-dirs="pid/common/ time_series/common/ molecular/"
-        runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
-        container:
-          image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
-      JOB_dao:
-        name: Material_Property_DAO
-        steps:
-          - name: Checkout_code
-            identifier: process_checkout
-            uses: checkout
-            with:
-              ref: ${{ atomgit.event.pull_request.merge_commit_sha }}
-              allow-unsafe-pr-checkout: true
-          - name: Download_pr_filelist
-            uses: obs-download
-            with:
-              endpoint: "https://obs.cn-north-4.myhuaweicloud.com"
-              bucket: "ascend-ci"
-              access-key: ${{ secrets.AK }}
-              secret-key: ${{ secrets.SK }}
-              key: "${{ env.obs_path }}/pr_filelist.txt"
-              path: ${{ steps.process_checkout.outputs.path }}
-          - name: Check_NPU_and_run_DAO_tests
-            run: |
-              bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                --python experimental/DAO \
-                -f pr_filelist.txt
+                -f pr_filelist.txt --python-tests=npu
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}

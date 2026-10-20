@@ -61,7 +61,7 @@ bash build.sh --reference-test pid/,time_series/,molecular/ -f pr_filelist.txt -
 ```
 
 `--reference-test` 的契约：有 `tests/` 的算子必须提供 `reference/reference.py` 或 `reference/__init__.py`；
-缺失会打印 `[REF-MISSING]` 并以非零退出，不允许"空跑假绿"。
+缺失会打印 `[REF-MISSING]` 并以非零退出（`--reference=required`，本地默认）；`--reference=auto` 仅对测试真正 import reference 的算子强制，`off` 不检查。
 
 ## 5. 增量门禁（CI 同款）
 
@@ -71,13 +71,18 @@ CI 通过 `pr_filelist.txt` 驱动 `build.sh -f`：
 # 生成文件清单（与 CI 的 get-pr 同口径）
 git diff --name-only origin/master...HEAD > pr_filelist.txt
 
-# 只构建受影响的算子
+# 只构建受影响的算子（本地默认：UT 自动、reference 严格）
 bash build.sh -f pr_filelist.txt --test
 
-# 限定范围 + 声明共享目录
-bash build.sh -f pr_filelist.txt --test \
-  --scope=pid/,time_series/,molecular/ \
-  --common-dirs="molecular/"
+# x86 聚合测试（CI stage3 同款）：Python 算子 + reference
+bash build.sh -f pr_filelist.txt --python-tests --reference=auto
+
+# ARM 编译 + ctest，分片（CI stage4 同款）
+bash build.sh -f pr_filelist.txt --test --shard=1/2 --ut=auto
+
+# 发布前严格门禁：缺 GTest、缺 reference 直接失败
+bash build.sh -f pr_filelist.txt --test --ut=required
+bash build.sh -f pr_filelist.txt --reference-test --reference=required
 
 # 纯文档 PR：直接短路，不编译
 bash build.sh -f pr_filelist.txt
@@ -86,8 +91,12 @@ bash build.sh -f pr_filelist.txt
 规则：
 
 - 文件清单全是 `.md` → 直接退出 0，并写 `build_out/skip_build.run`。
-- 共享目录变更 → 该 scope 下所有算子重建；`DirectMatchDir` 只认目录下的直接文件。
+- 共享目录变更 → 所有受影响算子重建；默认共享目录由 `cmake/variables.cmake` 的族目录与 `DirectMatchDir` 推导，不必手写 `--common-dirs`。
+- `cmake/` 或顶层 `CMakeLists.txt` 变更 → 视为全量受影响（`MATCHEM_GLOBAL_BUILD_PATHS`）。
 - 清单里没有算子路径 → 退出 0，避免"没变更却报红"。
+- `--reference=auto` 只对"测试真的 import reference"的算子强制 reference/；`required` 一律强制，`off` 不检查。
+- `--ut=auto` 在缺 GTest 时跳过 UT；`required` 直接失败；`off` 不编 UT。
+- `--shard=i/N` 按受影响算子列表取模分片；workflow 只决定并发度，新增族不用改 workflow。
 
 ## 6. 新增算子
 

@@ -47,13 +47,34 @@ load_repo_config() {
         [ -n "$value" ] && PYTHON_OPERATORS+=("$value")
     done < <(read_cmake_list MATCHEM_PYTHON_OPERATORS)
 
+    NPU_PYTHON_OPERATORS=()
+    while IFS= read -r value; do
+        [ -n "$value" ] && NPU_PYTHON_OPERATORS+=("$value")
+    done < <(read_cmake_list MATCHEM_NPU_PYTHON_OPERATORS)
+
     DIRECT_MATCH_DIRS=()
     while IFS= read -r value; do
         [ -n "$value" ] && DIRECT_MATCH_DIRS+=("$value")
     done < <(read_cmake_list MATCHEM_DIRECT_MATCH_DIRS)
 
+    GLOBAL_BUILD_PATHS=()
+    while IFS= read -r value; do
+        [ -n "$value" ] && GLOBAL_BUILD_PATHS+=("$value")
+    done < <(read_cmake_list MATCHEM_GLOBAL_BUILD_PATHS)
+
     value="$(read_cmake_scalar MATCHEM_DEFAULT_SOC)"
     [ -n "$value" ] && DEFAULT_SOC="$value"
 
     [ ${#OPERATOR_ROOTS[@]} -gt 0 ] || die "MATCHEM_OP_CATEGORIES is empty in cmake/variables.cmake"
+
+    # 默认共享目录：每个族的 common/ + DirectMatchDir 根。
+    # CI 不再手写 --common-dirs；新增族自动纳入。
+    DEFAULT_COMMON_DIRS=()
+    local root
+    for root in "${OPERATOR_ROOTS[@]}"; do
+        [ -d "${root}/common" ] && DEFAULT_COMMON_DIRS+=("${root}/common")
+    done
+    for value in "${DIRECT_MATCH_DIRS[@]}"; do
+        DEFAULT_COMMON_DIRS+=("${value}")
+    done
 }
