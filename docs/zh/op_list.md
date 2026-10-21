@@ -4,8 +4,8 @@
 
 ## 统计口径
 
-- 算子目录：61 个（`op_host/` + `op_kernel/` 齐备的独立算子目录）。
-- 纳入构建：60 个；`md/dissipative_particle_dynamics` 实现未完成，暂缓 CI（`cmake/variables.cmake` 的 `MATCHEM_SKIP_OPERATORS`）。
+- 算子目录：64 个（`op_host/` + `op_kernel/` 齐备的独立算子目录）。
+- 纳入构建：63 个；`md/dissipative_particle_dynamics` 实现未完成，暂缓 CI（`cmake/variables.cmake` 的 `MATCHEM_SKIP_OPERATORS`）。
 - 另有两个 Python 参考实现不进算子计数：`experimental/DAO`、`experimental/SmallData`。
 - 目录命名以实际路径为准；命名不合规的存量算子记录在 `tests/ut/layout_exceptions.json`，新增算子必须小写下划线。
 - 阶段口径：研发域 = `md/`、`pde/`、`molecular/`（设计、仿真、试制）；生产域 = `pid/`、`time_series/`（控制、质量、运行）。
@@ -54,7 +54,7 @@
 
 ## 时序预测（time_series）
 
-目录：`time_series/`；算子数：14。面向 DCS/传感器时序：SSM 扫描、lag 聚合、LSH 分桶与框架不支持路径下沉。
+目录：`time_series/`；算子数：17。面向 DCS/传感器时序：SSM 扫描、lag 聚合、LSH 分桶与框架不支持路径下沉。
 
 | 算子 | 说明 | 状态 |
 |---|---|---|
@@ -72,6 +72,9 @@
 | `reformer_lsh_qkv_gather` | 复用 LSH index 整理 query/key 与 value | ✅ Ascend C |
 | `autoformer_inference_aggregate_fused` | 均值归约 + TopK + softmax + 循环移位加权聚合融合 | ✅ Ascend C |
 | `mamba2_ssd_chunk_scan` | Mamba-2 SSD 分块扫描的四阶段 Cube-Vector 融合（910B/950） | ✅ Ascend C |
+| `timesnet2d_period_fold_aggregate` | TimesNet 二维多周期折叠 + stencil 滤波 + softmax 幅度聚合 | ✅ Ascend C |
+| `fused_kan_spline_basis_linear` | TimeKAN 三阶 Cox-de Boor B 样条基 + SiLU 残差收缩融合 | ✅ Ascend C |
+| `anomaly_association_discrepancy_kl_fused` | Anomaly Transformer prior/series 对称 KL 差异融合 | ✅ Ascend C |
 
 ## 图、点云与分子几何（molecular）
 
@@ -108,4 +111,4 @@
 
 ---
 
-合计 61 个算子目录。
+合计 64 个算子目录。

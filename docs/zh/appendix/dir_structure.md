@@ -19,7 +19,7 @@ mat-chem-sim-pred/
 ├── pde/                            # AI for PDE 算子族（3 + pde_common）
 ├── molecular/                      # 图 / 点云 / 分子几何算子族（26）
 ├── pid/                            # PID 整定算子族（12 + common）
-├── time_series/                    # 时序预测算子族（14 + common）
+├── time_series/                    # 时序预测算子族（17 + common）
 ├── docs/zh/                        # 文档中心（跨算子文档）
 ├── examples/                       # 跨算子示例（当前占位）
 ├── experimental/                   # 未成熟能力与 PyTorch 参考实现（DAO、SmallData）
