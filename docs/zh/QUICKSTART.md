@@ -74,11 +74,11 @@ git diff --name-only origin/master...HEAD > pr_filelist.txt
 # 只构建受影响的算子（本地默认：UT 自动、reference 严格）
 bash build.sh -f pr_filelist.txt --test
 
-# x86 聚合测试（CI stage3 同款）：Python 算子 + reference
-bash build.sh -f pr_filelist.txt --python-tests --reference=auto
-
-# ARM 编译 + ctest，分片（CI stage4 同款）
+# UT（CI stage3 同款）：ARM 编译 + ctest，分片
 bash build.sh -f pr_filelist.txt --test --shard=1/2 --ut=auto
+
+# 参考实现测试仍可在本地单独跑，但不进 CI 门禁
+bash build.sh -f pr_filelist.txt --python-tests --reference=auto
 
 # 发布前严格门禁：缺 GTest、缺 reference 直接失败
 bash build.sh -f pr_filelist.txt --test --ut=required

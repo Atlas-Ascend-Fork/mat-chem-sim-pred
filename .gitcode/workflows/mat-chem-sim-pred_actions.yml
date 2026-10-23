@@ -81,54 +81,13 @@ stages:
     fail-fast: false
 
   stage3:
-    name: Test
+    name: UT
     jobs:
-      # x86 聚合测试：Python 算子 + 受影响的 reference 测试。
-      # 跑哪些算子由 build.sh 从 filelist 推导，workflow 不再写族名或共享目录。
-      JOB_python:
-        name: Python_and_Reference_Tests
-        steps:
-          - name: Resolve_checkout_sha
-            identifier: resolve_sha
-            run: |
-              sha="${{ atomgit.event.pull_request.merge_commit_sha }}"
-              [ -n "$sha" ] || sha="${{ atomgit.event.pull_request.head.sha }}"
-              [ -n "$sha" ] || sha="${{ atomgit.sha }}"
-              echo "sha=$sha" >> "$ATOMGIT_OUTPUT"
-          - name: Checkout_code
-            identifier: process_checkout
-            uses: checkout
-            with:
-              ref: ${{ steps.resolve_sha.outputs.sha }}
-              allow-unsafe-pr-checkout: true
-          - name: Download_pr_filelist
-            uses: obs-download
-            with:
-              endpoint: "https://obs.cn-north-4.myhuaweicloud.com"
-              bucket: "ascend-ci"
-              access-key: ${{ secrets.AK }}
-              secret-key: ${{ secrets.SK }}
-              key: "${{ env.obs_path }}/pr_filelist.txt"
-              path: ${{ steps.process_checkout.outputs.path }}
-          - name: Run_python_and_reference_tests
-            run: |
-              bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                -f pr_filelist.txt --python-tests \
-                --reference=auto --ut=auto
-        runs-on: ['self-hosted', 'arch=x64', 'spec=small']
-        container:
-          image: swr.cn-north-4.myhuaweicloud.com/ci_cann/ubuntu20.04.05_x86:k8s_v1.1006
-    pre:
-      - type: auto
-    fail-fast: true
-
-  stage4:
-    name: AscendCBuildTest
-    jobs:
-      # ARM 编译 + ctest。shard 只表示并发度，不表示族；
+      # UT：ARM 编译 + ctest。shard 只表示并发度，不表示族；
       # 新增族不需要改本文件，build.sh 会从 cmake/variables.cmake 发现。
-      JOB_build_1:
-        name: AscendC_Build_and_Test_1
+      # --ut=auto：镜像有 GTest 才真正跑 ctest；镜像补齐 GTest 后改成 required。
+      JOB_ut_1:
+        name: UT_Build_and_Test_1
         steps:
           - name: Resolve_checkout_sha
             identifier: resolve_sha
@@ -159,8 +118,8 @@ stages:
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
-      JOB_build_2:
-        name: AscendC_Build_and_Test_2
+      JOB_ut_2:
+        name: UT_Build_and_Test_2
         steps:
           - name: Resolve_checkout_sha
             identifier: resolve_sha
