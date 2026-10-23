@@ -150,40 +150,6 @@ stages:
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
-      # 需要 NPU 的 Python 算子（cmake/variables.cmake 的 NPU 列表）。
-      # 设备分类写在配置里，workflow 只按设备类型分 job。
-      JOB_npu:
-        name: NPU_Python_Tests
-        steps:
-          - name: Resolve_checkout_sha
-            identifier: resolve_sha
-            run: |
-              sha="${{ atomgit.event.pull_request.merge_commit_sha }}"
-              [ -n "$sha" ] || sha="${{ atomgit.event.pull_request.head.sha }}"
-              [ -n "$sha" ] || sha="${{ atomgit.sha }}"
-              echo "sha=$sha" >> "$ATOMGIT_OUTPUT"
-          - name: Checkout_code
-            identifier: process_checkout
-            uses: checkout
-            with:
-              ref: ${{ steps.resolve_sha.outputs.sha }}
-              allow-unsafe-pr-checkout: true
-          - name: Download_pr_filelist
-            uses: obs-download
-            with:
-              endpoint: "https://obs.cn-north-4.myhuaweicloud.com"
-              bucket: "ascend-ci"
-              access-key: ${{ secrets.AK }}
-              secret-key: ${{ secrets.SK }}
-              key: "${{ env.obs_path }}/pr_filelist.txt"
-              path: ${{ steps.process_checkout.outputs.path }}
-          - name: Run_npu_python_tests
-            run: |
-              bash ${{ steps.process_checkout.outputs.path }}/build.sh \
-                -f pr_filelist.txt --python-tests=npu
-        runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
-        container:
-          image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
     pre:
       - type: auto
     fail-fast: false

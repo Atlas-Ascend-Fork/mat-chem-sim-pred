@@ -37,9 +37,10 @@ set(MATCHEM_PYTHON_OPERATORS
     "experimental/SmallData"
 )
 
-# 其中必须跑在 NPU 上的 Python 算子（CI 在 ARM/NPU job 里执行）
+# 其中必须跑在 NPU 上的 Python 算子（CI 在 ARM/NPU job 里执行）。
+# 暂不纳入 CI：DAO 依赖 pypto/CANN 版本匹配，先在 experimental 里保留，
+# 需要时把 "experimental/DAO" 加回本列表并恢复 JOB_npu。
 set(MATCHEM_NPU_PYTHON_OPERATORS
-    "experimental/DAO"
 )
 
 # 影响全部算子的构建输入：顶层 CMake 与 cmake/ 内的公共逻辑。
