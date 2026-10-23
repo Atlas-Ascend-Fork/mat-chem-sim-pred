@@ -96,7 +96,7 @@ ctest --test-dir <op>/build --output-on-failure
 
 ## 6. CI 工作流事实
 
-工作流定义在 `.gitcode/workflows/`，PR/MR 评论触发命令为 `/compile`（或 `compile`）。提交前应确保变更可通过以下检查：
+工作流定义在 `.gitcode/workflows/`，PR 事件（`open` / `update` / `reopen`）自动触发；评论 `/compile`（或 `compile`）用于手动重跑。提交前应确保变更可通过以下检查：
 
 | 工作流 | 实际覆盖内容 |
 |---|---|

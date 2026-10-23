@@ -18,8 +18,11 @@ concurrency:
     enable: true
     events: [mr_id]
 
-# 删除任何一个都可能导致评论 /compile 无法触发流水线，请勿单独删除。
+# PR 事件自动触发；评论 /compile 保留为手动重跑。
+# GitCode 的 PR 事件类型是 open / update / reopen（不是 opened / synchronize）。
 on:
+  pull_request:
+    types: [ open, update, reopen ]
   pull_request_comment:
     types: [created]
     branches: [ '**' ]
@@ -32,6 +35,8 @@ env:
   org_name: ${{ vars.ORG_NAME }}
   repo_name: ${{ atomgit.event.repository.name }}
   MERGE_ID: ${{ atomgit.event.pull_request.number }}
+  # base_ref 是 PR 的目标分支（master）。不要用 ref_name：未合并 PR 的 ref_name
+  # 是 "<PR 号>/merge"，不是 master。
   TARGET_BRANCH: ${{ atomgit.base_ref }}
   SOURCE_BRANCH: ${{ atomgit.head_ref }}
   obs_path: "${{ vars.OBS_PATH }}/${{ env.MERGE_ID }}"
@@ -83,11 +88,18 @@ stages:
       JOB_python:
         name: Python_and_Reference_Tests
         steps:
+          - name: Resolve_checkout_sha
+            identifier: resolve_sha
+            run: |
+              sha="${{ atomgit.event.pull_request.merge_commit_sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.event.pull_request.head.sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.sha }}"
+              echo "sha=$sha" >> "$ATOMGIT_OUTPUT"
           - name: Checkout_code
             identifier: process_checkout
             uses: checkout
             with:
-              ref: ${{ atomgit.event.pull_request.merge_commit_sha }}
+              ref: ${{ steps.resolve_sha.outputs.sha }}
               allow-unsafe-pr-checkout: true
           - name: Download_pr_filelist
             uses: obs-download
@@ -118,11 +130,18 @@ stages:
       JOB_build_1:
         name: AscendC_Build_and_Test_1
         steps:
+          - name: Resolve_checkout_sha
+            identifier: resolve_sha
+            run: |
+              sha="${{ atomgit.event.pull_request.merge_commit_sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.event.pull_request.head.sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.sha }}"
+              echo "sha=$sha" >> "$ATOMGIT_OUTPUT"
           - name: Checkout_code
             identifier: process_checkout
             uses: checkout
             with:
-              ref: ${{ atomgit.event.pull_request.merge_commit_sha }}
+              ref: ${{ steps.resolve_sha.outputs.sha }}
               allow-unsafe-pr-checkout: true
           - name: Download_pr_filelist
             uses: obs-download
@@ -143,11 +162,18 @@ stages:
       JOB_build_2:
         name: AscendC_Build_and_Test_2
         steps:
+          - name: Resolve_checkout_sha
+            identifier: resolve_sha
+            run: |
+              sha="${{ atomgit.event.pull_request.merge_commit_sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.event.pull_request.head.sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.sha }}"
+              echo "sha=$sha" >> "$ATOMGIT_OUTPUT"
           - name: Checkout_code
             identifier: process_checkout
             uses: checkout
             with:
-              ref: ${{ atomgit.event.pull_request.merge_commit_sha }}
+              ref: ${{ steps.resolve_sha.outputs.sha }}
               allow-unsafe-pr-checkout: true
           - name: Download_pr_filelist
             uses: obs-download
@@ -170,11 +196,18 @@ stages:
       JOB_npu:
         name: NPU_Python_Tests
         steps:
+          - name: Resolve_checkout_sha
+            identifier: resolve_sha
+            run: |
+              sha="${{ atomgit.event.pull_request.merge_commit_sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.event.pull_request.head.sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.sha }}"
+              echo "sha=$sha" >> "$ATOMGIT_OUTPUT"
           - name: Checkout_code
             identifier: process_checkout
             uses: checkout
             with:
-              ref: ${{ atomgit.event.pull_request.merge_commit_sha }}
+              ref: ${{ steps.resolve_sha.outputs.sha }}
               allow-unsafe-pr-checkout: true
           - name: Download_pr_filelist
             uses: obs-download
