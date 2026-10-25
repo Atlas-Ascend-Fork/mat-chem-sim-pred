@@ -25,6 +25,10 @@
 |---|---|---|
 | `DAO/` | 材料性质预测的 PyTorch 基础算子库 | `bash build.sh --python experimental/DAO` |
 | `SmallData/` | GP 回归 + 贝叶斯优化参考实现 | `bash build.sh --python experimental/SmallData` |
+| `csr_gat_attention_aggregate_fused/` | GAT 稀疏注意力聚合；外部环境验证有问题，暂不纳入构建 | `bash build.sh experimental/csr_gat_attention_aggregate_fused` |
+| `csr_gatv2_dynamic_attention_aggregate_fused/` | GATv2 动态注意力聚合；同上 | `bash build.sh experimental/csr_gatv2_dynamic_attention_aggregate_fused` |
+| `csr_chebyshev_basis_k3_fused/` | ChebNet K=3 基生成；同上 | `bash build.sh experimental/csr_chebyshev_basis_k3_fused` |
+| `csr_film_modulated_mean_fused/` | FiLM 逐边调制 + 均值聚合；同上 | `bash build.sh experimental/csr_film_modulated_mean_fused` |
 | `MaterialPropertyPrediction.md` | 材料性质预测与结构生成的方向综述 | 阅读 |
 
 这些内容不参与算子计数与 CMake 构建。roadmap 中"规划中"的 ML-MD / 材料性质预测条目在落地前也放这里。

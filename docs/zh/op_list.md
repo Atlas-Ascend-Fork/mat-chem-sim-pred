@@ -4,8 +4,8 @@
 
 ## 统计口径
 
-- 算子目录：64 个（`op_host/` + `op_kernel/` 齐备的独立算子目录）。
-- 纳入构建：63 个；`md/dissipative_particle_dynamics` 实现未完成，暂缓 CI（`cmake/variables.cmake` 的 `MATCHEM_SKIP_OPERATORS`）。
+- 算子目录：60 个（`op_host/` + `op_kernel/` 齐备的独立算子目录）。
+- 纳入构建：59 个；`md/dissipative_particle_dynamics` 实现未完成，暂缓 CI（`cmake/variables.cmake` 的 `MATCHEM_SKIP_OPERATORS`）。
 - 另有两个 Python 参考实现不进算子计数：`experimental/DAO`、`experimental/SmallData`。
 - 目录命名以实际路径为准；命名不合规的存量算子记录在 `tests/ut/layout_exceptions.json`，新增算子必须小写下划线。
 - 阶段口径：研发域 = `md/`、`pde/`、`molecular/`（设计、仿真、试制）；生产域 = `pid/`、`time_series/`（控制、质量、运行）。
@@ -78,22 +78,18 @@
 
 ## 图、点云与分子几何（molecular）
 
-目录：`molecular/`；算子数：26。把 PyG / PointNet++ / DimeNet / GemNet 的稀疏图传播、注意力聚合、邻域查询与多体几何下沉为单 kernel。
+目录：`molecular/`；算子数：22。把 PyG / PointNet++ / DimeNet / GemNet 的稀疏图传播、注意力聚合、邻域查询与多体几何下沉为单 kernel。
 
 | 算子 | 说明 | 状态 |
 |---|---|---|
-| `csr_gat_attention_aggregate_fused` | 稀疏注意力打分 + LeakyReLU + CSR 分段 softmax + 邻居加权聚合 | ✅ Ascend C |
-| `csr_gatv2_dynamic_attention_aggregate_fused` | 动态注意力（先加后打分）+ CSR softmax + 聚合 | ✅ Ascend C |
 | `csr_sage_mean_root_relu_fused` | 邻居均值 + root 分支 + ReLU 融合 | ✅ Ascend C |
 | `csr_lightgcn_k2_weighted_sum_fused` | K=2 对称归一化两跳传播 + 层加权求和 | ✅ Ascend C |
 | `csr_signed_cross_mean_pack_fused` | 第二层正/负邻域交叉均值打包 | ✅ Ascend C |
 | `csr_arma_stack_propagate_fused` | K 路并行栈式加权传播 + root/bias + ReLU | ✅ Ascend C |
 | `csr_appnp_propagate_fused` | 定步数传播阶段乒乓 workspace 融合 | ✅ Ascend C |
-| `csr_film_modulated_mean_fused` | 逐边特征线性调制 + 均值聚合 | ✅ Ascend C |
 | `csr_hypergraph_attention_two_stage_propagate_fused` | 节点-超边-节点两阶段注意力传播 | ✅ Ascend C |
-| `csr_chebyshev_basis_k3_fused` | `K=3` 切比雪夫基 `T0/T1/T2` 生成 | ✅ Ascend C |
-| `csr_gcn2_residual_propagate_fused` | 传播 + 初始残差融合 | ✅ Ascend C |
 | `csr_tagcn_basis_k3_fused` | `K=3` 四阶特征基逐级传播 | ✅ Ascend C |
+| `csr_gcn2_residual_propagate_fused` | 传播 + 初始残差融合 | ✅ Ascend C |
 | `csr_transformer_dot_attention_aggregate_fused` | 缩放点积多头注意力 + CSR softmax + 聚合 | ✅ Ascend C |
 | `farthest_point_sampling_fused` | 点云最远点采样（FPS）中心点选取 | ✅ Ascend C |
 | `point_ball_query_fused` | 球半径邻域查询 + 距离过滤 + 有效计数 | ✅ Ascend C |
@@ -111,4 +107,4 @@
 
 ---
 
-合计 64 个算子目录。
+合计 60 个算子目录。

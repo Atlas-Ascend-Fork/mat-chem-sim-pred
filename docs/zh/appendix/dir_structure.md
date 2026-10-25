@@ -17,7 +17,7 @@ mat-chem-sim-pred/
 │   └── tests/                      # 公共层 UT
 ├── md/                             # 分子动力学算子族（6）
 ├── pde/                            # AI for PDE 算子族（3 + pde_common）
-├── molecular/                      # 图 / 点云 / 分子几何算子族（26）
+├── molecular/                      # 图 / 点云 / 分子几何算子族（22）
 ├── pid/                            # PID 整定算子族（12 + common）
 ├── time_series/                    # 时序预测算子族（17 + common）
 ├── docs/zh/                        # 文档中心（跨算子文档）

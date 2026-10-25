@@ -55,10 +55,10 @@ mat-chem-sim-pred 是 [CANN](https://hiascend.com/software/cann) 面向**工业�
 |---|---|---|---:|---|
 | 分子与材料模拟（AI4MD） | `md/` | 研发 | 6 | 经典力场、静电求和、约束、积分、耗散粒子动力学 |
 | 连续介质仿真（AI4PDE） | `pde/` | 研发 | 3 | PINN / FNO / DeepONet 推理；结构、流体、传热仿真代理的基础 |
-| 图 / 点云 / 分子几何（NonTemporalPrediction） | `molecular/` | 研发 | 26 | GNN 传播与注意力聚合、点云邻域、分子多体几何；可复用于 CAD / 扫描表征 |
+| 图 / 点云 / 分子几何（NonTemporalPrediction） | `molecular/` | 研发 | 22 | GNN 传播与注意力聚合、点云邻域、分子多体几何；可复用于 CAD / 扫描表征 |
 | PID 整定全流程（PIDModelFit） | `pid/` | 生产 | 12 | 模型辨识 → 诊断 → 整定 → 仿真选优 → 评估 |
 | 生产时序预测（TimeSeriesForecast） | `time_series/` | 生产 | 17 | SSM 扫描、lag 聚合、LSH 分桶、TimesNet/KAN/Anomaly Transformer 融合；可用于工艺与设备信号 |
-| **合计** | | | **64** | 其中 63 个纳入构建；DPD 实现未完成，暂缓 CI |
+| **合计** | | | **60** | 其中 59 个纳入构建；DPD 实现未完成，暂缓 CI |
 
 > 阶段说明：研发 = 设计、仿真、试制；生产 = 控制、质量、运行。规划中的生产域方向（质量检测、设备健康、运行优化）尚未形成算子族，见 roadmap。
 
@@ -74,7 +74,7 @@ mat-chem-sim-pred/
 ├── common/                 # 跨算子公共层（inc / src / tests）
 ├── md/                     # 研发域：分子与材料模拟算子族（6）
 ├── pde/                    # 研发域：连续介质仿真算子族（3 + pde_common）
-├── molecular/              # 研发域：图 / 点云 / 分子几何算子族（26）
+├── molecular/              # 研发域：图 / 点云 / 分子几何算子族（22）
 ├── pid/                    # 生产域：PID 整定算子族（12）
 ├── time_series/            # 生产域：生产时序算子族（17）
 ├── docs/zh/                # 文档中心：快速入门、算子清单、目录说明
@@ -148,7 +148,7 @@ cmake -S . -B build && cmake --build build -j
 | 文档 | 说明 |
 |---|---|
 | [快速入门](docs/zh/QUICKSTART.md) | 环境、构建、测试与增量门禁 |
-| [算子清单](docs/zh/op_list.md) | 64 个算子的逐项说明与统计口径 |
+| [算子清单](docs/zh/op_list.md) | 60 个算子的逐项说明与统计口径 |
 | [目录结构](docs/zh/appendix/dir_structure.md) | 每个目录的职责与放置规则 |
 | [算子包](docs/zh/appendix/operator_package.md) | custom opp 打包、安装与多芯片说明 |
 | [算子标准](docs/zh/appendix/operator_standard.md) | 正规算子的六条标准与分批治理 |

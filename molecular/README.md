@@ -5,11 +5,14 @@
 
 ## 范围
 
-- 稀疏图传播与注意力聚合：GAT / GATv2 / GraphSAGE / LightGCN / Signed GCN / ARMA / APPNP /
-  FiLM / Hypergraph / ChebNet / GCNII / TAGCN / Graph Transformer / AGNN / GENConv / SuperGAT；
+- 稀疏图传播与注意力聚合：GraphSAGE / LightGCN / Signed GCN / ARMA / APPNP /
+  Hypergraph / GCNII / TAGCN / Graph Transformer / AGNN / GENConv / SuperGAT；
 - 图池化：AttentionalAggregation、EdgePooling、SortAggregation；
 - 点云与三维几何：FarthestPointSampling、BallQuery、Point Transformer、PPF；
 - 分子图多体几何：DimeNet 三元组枚举与角度、GemNet 四元组几何。
+
+GAT / GATv2 / ChebNet / FiLM 四个算子因外部环境验证有问题，已移到
+`experimental/`，暂不纳入本族构建与计数。
 
 不在本族范围：过程控制（`pid/`）、时序预测（`time_series/`）、分子动力学力场（`md/`）。
 
@@ -30,15 +33,15 @@ molecular/
 ## 构建与测试
 
 ```bash
-bash build.sh molecular/csr_gat_attention_aggregate_fused
-bash build.sh --ops=csr_gat_attention_aggregate_fused --test
+bash build.sh molecular/csr_sage_mean_root_relu_fused
+bash build.sh --ops=csr_sage_mean_root_relu_fused --test
 bash build.sh --reference-test molecular/ -f pr_filelist.txt
 ```
 
 顶层聚合（需 CANN）：
 
 ```bash
-cmake -S . -B build -DMATCHEM_OP=molecular/csr_gat_attention_aggregate_fused
+cmake -S . -B build -DMATCHEM_OP=molecular/csr_sage_mean_root_relu_fused
 cmake --build build -j
 ```
 
