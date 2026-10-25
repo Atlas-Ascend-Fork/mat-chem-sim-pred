@@ -58,13 +58,29 @@ env:
 - `JOB_compile_pypto`：stage2 Compile，`--backend=pypto --build-only`
 - `JOB_ut_pypto`：stage3 UT，`--backend=pypto --test`
 
-启用条件：
+两个 job 默认复用 Ascend C 的 ARM 镜像：
+
+```yaml
+image: ${{ vars.PYPTO_IMAGE || format('.../ci_cann/{0}', jobs.JOB_image.outputs.Compile_Ascend_ARM) }}
+```
+
+`PYPTO_IMAGE` 只是可选覆盖，不是必填。启用条件：
 
 1. 仓库变量 `PYPTO_ENABLED=true`；
-2. 仓库变量 `PYPTO_IMAGE` 指向带匹配 pypto wheel 的镜像；
+2. Ascend C 的 ARM 镜像里预装与 CANN 匹配的 pypto（推荐），或设置
+   `PYPTO_IMAGE` 指向同版本、带 pypto 的镜像；
 3. 至少有一个 `backend: pypto` 的算子。
 
-未启用时两个 job 直接 skip，不影响现有 Ascend C 流水线。
+两个 job 在构建前都会跑：
+
+```bash
+python3 -c "import pypto; print(pypto.__version__)"
+```
+
+导入失败或版本不匹配会直接失败，不会静默跳过。
+
+如果 PyPTO 只能 x86 编译，把两个 job 的 `runs-on` 改回 `arch=x64`，并设置
+`PYPTO_IMAGE` 为同版本 x86 镜像；环境版本仍保持同一套，不维护两套无关环境。
 
 ## 4. 依赖与版本
 
