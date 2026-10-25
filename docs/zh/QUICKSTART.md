@@ -74,7 +74,10 @@ git diff --name-only origin/master...HEAD > pr_filelist.txt
 # 只构建受影响的算子（本地默认：UT 自动、reference 严格）
 bash build.sh -f pr_filelist.txt --test
 
-# UT（CI Compile stage 同款）：ARM 编译 + ctest，分片
+# Compile（CI stage2 同款）：只编受影响算子
+bash build.sh -f pr_filelist.txt --build-only --shard=1/2
+
+# UT（CI stage3 同款）：ARM 编译 + ctest，分片
 bash build.sh -f pr_filelist.txt --test --shard=1/2 --ut=auto
 
 # 参考实现测试仍可在本地单独跑，但不进 CI 门禁
