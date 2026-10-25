@@ -18,9 +18,10 @@
   R4 每个算子必须有 tests/
   R5 有 tests/ 的算子必须有 reference/（AGENTS.md 的交付契约）
   R6 仓库不得跟踪构建产物
+  R7 每个算子必须有 msopgen/*.json（算子包契约）
 
 已存在的缺口记录在 tests/ut/layout_exceptions.json。测试只允许缺口缩小，
-不允许新增：新算子若违反 R2–R5 会直接失败。
+不允许新增：新算子若违反 R2–R7 会直接失败。
 """
 
 import json
@@ -129,6 +130,15 @@ def test_r5_reference(operators: list[str], exceptions: dict[str, list[str]]) ->
         exceptions,
         "tests_without_reference",
         lambda path: (path / "tests").is_dir() and not (path / "reference").is_dir(),
+    )
+
+
+def test_r7_msopgen(operators: list[str], exceptions: dict[str, list[str]]) -> None:
+    assert_no_new_gaps(
+        operators,
+        exceptions,
+        "missing_msopgen",
+        lambda path: not list((path / "msopgen").glob("*.json")),
     )
 
 

@@ -151,6 +151,7 @@ cmake -S . -B build && cmake --build build -j
 | [算子清单](docs/zh/op_list.md) | 64 个算子的逐项说明与统计口径 |
 | [目录结构](docs/zh/appendix/dir_structure.md) | 每个目录的职责与放置规则 |
 | [算子包](docs/zh/appendix/operator_package.md) | custom opp 打包、安装与多芯片说明 |
+| [算子标准](docs/zh/appendix/operator_standard.md) | 正规算子的六条标准与分批治理 |
 | [贡献模板](template/) | 算法说明、API、测试架构与算子骨架模板 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 目录契约、编码规范、PR 要求 |
 | [AGENTS.md](AGENTS.md) | 面向 AI Agent 的可执行约束 |
