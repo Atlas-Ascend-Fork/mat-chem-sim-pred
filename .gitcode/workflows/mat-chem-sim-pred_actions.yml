@@ -57,6 +57,10 @@ stages:
               target_branch: ${{ env.TARGET_BRANCH }}
               comment: ${{ atomgit.event.comment.body }}
               allow-unsafe-pr-checkout: true
+          - name: show_output
+            run: |
+              echo "image x86: ${{ steps.revise_image.outputs.Compile_Ascend_X86 }}"
+              echo "image arm: ${{ steps.revise_image.outputs.Compile_Ascend_ARM }}"
         runs-on: ['self-hosted', 'arch=x64', 'spec=small']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/ubuntu20.04.05_x86:k8s_v1.1006
@@ -68,21 +72,15 @@ stages:
     fail-fast: true
 
   stage2:
-    name: CodeCheck
+    name: Compile
     jobs:
+      # CodeCheck 与 UT 同 stage 并行：一轮暴露全部失败，CodeCheck 不再阻断构建。
       JOB_codecheck:
         name: CodeCheck
         uses: cann/.gitcode/.gitcode/workflows/codecheck_action.yml@master
         with:
           precommit_image_version: ${{ jobs.JOB_image.outputs.precommit }}
           codecheck_image_version: ${{ jobs.JOB_image.outputs.codecheck }}
-    pre:
-      - type: auto
-    fail-fast: false
-
-  stage3:
-    name: UT
-    jobs:
       # UT：ARM 编译 + ctest。shard 只表示并发度，不表示族；
       # 新增族不需要改本文件，build.sh 会从 cmake/variables.cmake 发现。
       # --ut=auto：镜像有 GTest 才真正跑 ctest；镜像补齐 GTest 后改成 required。
