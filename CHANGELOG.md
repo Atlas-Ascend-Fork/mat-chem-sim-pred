@@ -9,6 +9,7 @@
 ### 变更
 
 - CI：workflow 收薄为 4 个 job（x86 聚合测试、ARM 2 分片编译、NPU Python）；算子发现、共享目录、UT/reference 强度全部下沉到 `build.sh`，新增 `--python-tests[=cpu|npu|all]`、`--ut=auto|required|off`、`--reference=auto|required|off`、`--shard=i/N`，`--common-dirs` 默认由 `cmake/variables.cmake` 推导。
+- 算子包：新增 `scripts/package_opp.sh`、`build.sh --package` 和手动流水线 `opp_package.yml`，支持把带 `msopgen/*.json` 的算子打成 CANN custom opp `.run`；`MATCHEM_SOCS` 登记 910B/910C/950。
 - 文档：仓库定位从"材料/化学/流程工业"扩展为**工业制造的研发与生产**；README 新增研发域/生产域负载与行业覆盖矩阵；roadmap 重构为研发域（设计与仿真）与生产域（控制、质量与运行），新增质量检测、设备健康、生产运行优化三类规划方向；AGENTS/CONTRIBUTING/目录说明同步口径。
 - 算子族从 `simulation/<方向>/` + `prediction/ProcessControl/<方向>/` 收平为
   `md/`、`pde/`、`molecular/`、`pid/`、`time_series/` 五个一级目录。

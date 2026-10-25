@@ -28,6 +28,10 @@ PYTHON_TESTS_DEVICE="cpu"
 COMMON_DIRS=""
 SCOPE=""
 REFERENCE_TEST=false
+PACKAGE_MODE=false
+PACKAGE_OUT="build_out/opp"
+PACKAGE_FRAMEWORK="tf"
+PACKAGE_REQUIRE_ALL=false
 UT_MODE="auto"           # auto | required | off
 REFERENCE_MODE="required" # auto | required | off
 SHARD_INDEX=1
@@ -68,6 +72,10 @@ Options:
   --ut=<mode>        auto | required | off (default: auto)
                      auto: skip UT when GTest is missing; required: fail instead
   --shard=<i>/<N>    Build only shard i of N from the affected operator list
+  --package          Build CANN custom opp packages instead of normal build
+  --package-out=<dir> Package output directory (default: build_out/opp)
+  --framework=<name>  msopgen framework for --package (default: tf)
+  --package-require-all  Fail if any selected operator has no msopgen/*.json
   --build-only       Build only, skip ctest
   --skip-check       Skip "md-only" check for -f mode
   -h, --help         Show this help
@@ -79,6 +87,7 @@ Examples:
   bash build.sh -f pr_filelist.txt --test --ut=required
   bash build.sh -f pr_filelist.txt --test --shard=1/2
   bash build.sh -f pr_filelist.txt --python-tests --reference=auto
+  bash build.sh --package --soc=Ascend910B1 time_series/cfc_scan_fused
   bash build.sh --all -j16
 
 Note:
@@ -145,6 +154,10 @@ parse_args() {
                 esac
                 ;;
             --shard=*)       parse_shard "${1#--shard=}" ;;
+            --package)       PACKAGE_MODE=true ;;
+            --package-out=*) PACKAGE_OUT="${1#--package-out=}" ;;
+            --framework=*)   PACKAGE_FRAMEWORK="${1#--framework=}" ;;
+            --package-require-all) PACKAGE_REQUIRE_ALL=true ;;
             -f)
                 shift
                 FILELIST="${1:-}"

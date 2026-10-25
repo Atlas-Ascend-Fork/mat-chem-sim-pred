@@ -43,6 +43,15 @@ set(MATCHEM_PYTHON_OPERATORS
 set(MATCHEM_NPU_PYTHON_OPERATORS
 )
 
+# 目标 SOC 清单（打包/多芯片 CI 的唯一事实源）
+# 格式：<id>|<SOC_VERSION>|<门控级别>
+# 门控级别：pr = PR 跑；master = 仅 master/手动跑
+set(MATCHEM_SOCS
+    "910b|Ascend910B1|pr"
+    "910c|Ascend910C|master"
+    "950|Ascend950PR_9579|master"
+)
+
 # 影响全部算子的构建输入：顶层 CMake 与 cmake/ 内的公共逻辑。
 set(MATCHEM_GLOBAL_BUILD_PATHS
     "CMakeLists.txt"

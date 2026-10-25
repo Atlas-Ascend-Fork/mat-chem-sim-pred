@@ -175,6 +175,16 @@ if [ ${#OPERATORS[@]} -eq 0 ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# 打包模式：msopgen -> 生成工程 -> build -> custom_opp_*.run
+# ---------------------------------------------------------------------------
+if [ "$PACKAGE_MODE" = true ]; then
+    package_args=(--soc "$SOC_VERSION" --framework "$PACKAGE_FRAMEWORK" --out "$PACKAGE_OUT")
+    [ "$PACKAGE_REQUIRE_ALL" = true ] && package_args+=(--require-all)
+    bash "$REPO_ROOT/scripts/package_opp.sh" "${package_args[@]}" "${OPERATORS[@]}"
+    exit $?
+fi
+
+# ---------------------------------------------------------------------------
 # 清理模式
 # ---------------------------------------------------------------------------
 if [ "$CLEAN_MODE" = true ]; then

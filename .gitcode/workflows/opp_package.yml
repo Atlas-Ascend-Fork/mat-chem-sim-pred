@@ -1,0 +1,94 @@
+#
+# Copyright (c) 2026 Huawei Technologies Co., Ltd.
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+# CANN Open Software License Agreement Version 2.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
+#
+# 手动打包流水线：不参与 PR 门禁。
+# 用途：在 ARM + CANN 环境验证 custom opp 打包，产出可安装的 .run 包。
+# 触发：GitCode 流水线页面手动运行，或在 PR 评论里由维护者手动触发平台入口。
+
+name: opp-package_mat-chem-sim-pred
+
+on:
+  workflow_dispatch:
+    inputs:
+      soc:
+        description: "Target SOC version (e.g. Ascend910B1, Ascend910C, Ascend950PR_9579)"
+        required: true
+        default: "Ascend910B1"
+      framework:
+        description: "msopgen framework argument"
+        required: true
+        default: "tf"
+      ops:
+        description: "Space-separated operator paths; empty = all time_series operators with msopgen json"
+        required: false
+        default: ""
+
+env:
+  org_name: ${{ vars.ORG_NAME }}
+  repo_name: ${{ atomgit.event.repository.name }}
+
+stages:
+  stage1:
+    name: Package
+    jobs:
+      JOB_package:
+        name: Build_OPP_Package
+        steps:
+          - name: Checkout_code
+            identifier: process_checkout
+            uses: checkout
+            with:
+              ref: ${{ atomgit.sha }}
+              allow-unsafe-pr-checkout: true
+          - name: Build_package
+            run: |
+              set -euo pipefail
+              cd "${{ steps.process_checkout.outputs.path }}"
+              if [ -n "${{ inputs.ops }}" ]; then
+                ops="${{ inputs.ops }}"
+              else
+                ops="$(find time_series -mindepth 2 -maxdepth 2 -name CMakeLists.txt \
+                  | sed 's#/CMakeLists.txt$##' | sort)"
+              fi
+              echo "[package] operators:"
+              echo "$ops"
+              bash build.sh --package \
+                --soc="${{ inputs.soc }}" \
+                --framework="${{ inputs.framework }}" \
+                --package-out=build_out/opp \
+                $ops
+              tar -czf "build_out/opp_${{ inputs.soc }}.tar.gz" -C build_out/opp .
+              ls -lh "build_out/opp_${{ inputs.soc }}.tar.gz"
+          - name: Install_and_verify
+            run: |
+              set -euo pipefail
+              cd "${{ steps.process_checkout.outputs.path }}"
+              run_file="$(find build_out/opp -maxdepth 1 -name '*.run' | head -1)"
+              [ -n "$run_file" ] || { echo "no custom_opp .run produced"; exit 1; }
+              install_dir="$PWD/build_out/opp_install"
+              bash "$run_file" --install-path="$install_dir"
+              env_script="$(find "$install_dir" -path '*/bin/set_env.bash' | head -1)"
+              [ -n "$env_script" ] || { echo "set_env.bash not found after install"; exit 1; }
+              # shellcheck disable=SC1090
+              source "$env_script"
+              echo "ASCEND_CUSTOM_OPP_PATH=$ASCEND_CUSTOM_OPP_PATH"
+              test -d "$install_dir/opp/vendors" -o -d "$install_dir/vendors"
+          - name: Upload_package
+            uses: obs-upload
+            with:
+              endpoint: "https://obs.cn-north-4.myhuaweicloud.com"
+              bucket: "ascend-ci"
+              access-key: ${{ secrets.AK }}
+              secret-key: ${{ secrets.SK }}
+              artifact-path: "${{ steps.process_checkout.outputs.path }}/build_out/opp_${{ inputs.soc }}.tar.gz"
+              object-prefix: "${{ vars.OBS_PATH }}/opp/${{ inputs.soc }}/"
+        runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
+        container:
+          image: ${{ vars.OPP_ARM_IMAGE }}
+    fail-fast: true
