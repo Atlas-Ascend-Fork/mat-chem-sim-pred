@@ -10,15 +10,41 @@
 # ----------------------------------------------------------------------------
 # 算子发现与增量解析。全部基于 cmake/variables.cmake，新增算子无需改脚本。
 
-# 动态发现算子：族目录的直接子目录 + CMakeLists.txt，排除 MATCHEM_SKIP_OPERATORS。
+# 读取算子清单 op.yaml 的字段（简单 key: value，不引入 YAML 解析器）。
+op_field() {
+    local op="$1" key="$2" file="$1/op.yaml"
+    [ -f "$file" ] || return 1
+    sed -n "s/^[[:space:]]*${key}:[[:space:]]*//p" "$file" | head -n 1 \
+        | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+}
+
+# 算子后端；没有 op.yaml 的存量算子按 ascendc 兼容。
+op_backend() {
+    local backend
+    backend="$(op_field "$1" backend 2>/dev/null || true)"
+    echo "${backend:-ascendc}"
+}
+
+# 动态发现算子：族目录的直接子目录。
+#   ascendc：有 CMakeLists.txt（或无 op.yaml 的存量目录）
+#   pypto  ：op.yaml 声明 backend: pypto
 discover_operators() {
-    local root dir op skip skip_op
+    local root dir op skip skip_op backend
     ALL_OPERATORS=()
     for root in "${OPERATOR_ROOTS[@]}"; do
         [ -d "$root" ] || continue
         for dir in "$root"/*/; do
-            [ -f "${dir}CMakeLists.txt" ] || continue
             op="${dir%/}"
+            if [ -f "$op/op.yaml" ]; then
+                backend="$(op_backend "$op")"
+            else
+                backend="ascendc"
+            fi
+            if [ "$backend" = ascendc ]; then
+                [ -f "$op/CMakeLists.txt" ] || continue
+            else
+                [ -f "$op/op.yaml" ] || continue
+            fi
             skip=false
             for skip_op in "${SKIP_OPERATORS[@]}"; do
                 if [ "$op" = "$skip_op" ]; then
@@ -31,10 +57,24 @@ discover_operators() {
     done
 }
 
+# 按 --backend 过滤当前算子列表。
+filter_by_backend() {
+    local wanted="$1" op
+    [ "$wanted" = all ] && return 0
+    local -a kept=()
+    for op in "${OPERATORS[@]}"; do
+        if [ "$(op_backend "$op")" = "$wanted" ]; then
+            kept+=("$op")
+        fi
+    done
+    echo "[INFO] Backend ${wanted}: ${#kept[@]} of ${#OPERATORS[@]} operator(s)"
+    OPERATORS=("${kept[@]}")
+}
+
 # 算子名 → 算子路径映射
 resolve_operator() {
     local input="$1" op
-    if [ -f "$input/CMakeLists.txt" ]; then
+    if [ -f "$input/CMakeLists.txt" ] || [ -f "$input/op.yaml" ]; then
         echo "$input"
         return 0
     fi

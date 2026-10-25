@@ -41,6 +41,7 @@ env:
   SOURCE_BRANCH: ${{ atomgit.head_ref }}
   obs_path: "${{ vars.OBS_PATH }}/${{ env.MERGE_ID }}"
   online: ${{ vars.APPLY_LABEL }}
+  PYPTO_ENABLED: ${{ vars.PYPTO_ENABLED }}
 
 stages:
   stage1:
@@ -145,6 +146,39 @@ stages:
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
+      JOB_compile_pypto:
+        name: Compile_PyPTO
+        if: env.PYPTO_ENABLED == 'true'
+        steps:
+          - name: Resolve_checkout_sha
+            identifier: resolve_sha
+            run: |
+              sha="${{ atomgit.event.pull_request.merge_commit_sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.event.pull_request.head.sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.sha }}"
+              echo "sha=$sha" >> "$ATOMGIT_OUTPUT"
+          - name: Checkout_code
+            identifier: process_checkout
+            uses: checkout
+            with:
+              ref: ${{ steps.resolve_sha.outputs.sha }}
+              allow-unsafe-pr-checkout: true
+          - name: Download_pr_filelist
+            uses: obs-download
+            with:
+              endpoint: "https://obs.cn-north-4.myhuaweicloud.com"
+              bucket: "ascend-ci"
+              access-key: ${{ secrets.AK }}
+              secret-key: ${{ secrets.SK }}
+              key: "${{ env.obs_path }}/pr_filelist.txt"
+              path: ${{ steps.process_checkout.outputs.path }}
+          - name: Build
+            run: |
+              bash ${{ steps.process_checkout.outputs.path }}/build.sh \
+                -f pr_filelist.txt --backend=pypto --build-only
+        runs-on: ['self-hosted', 'arch=x64', 'spec=large']
+        container:
+          image: ${{ vars.PYPTO_IMAGE }}
     pre:
       - type: auto
     fail-fast: false
@@ -218,6 +252,39 @@ stages:
         runs-on: ['self-hosted', 'arch=arm64', 'spec=xlarge']
         container:
           image: swr.cn-north-4.myhuaweicloud.com/ci_cann/${{ jobs.JOB_image.outputs.Compile_Ascend_ARM }}
+      JOB_ut_pypto:
+        name: UT_PyPTO
+        if: env.PYPTO_ENABLED == 'true'
+        steps:
+          - name: Resolve_checkout_sha
+            identifier: resolve_sha
+            run: |
+              sha="${{ atomgit.event.pull_request.merge_commit_sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.event.pull_request.head.sha }}"
+              [ -n "$sha" ] || sha="${{ atomgit.sha }}"
+              echo "sha=$sha" >> "$ATOMGIT_OUTPUT"
+          - name: Checkout_code
+            identifier: process_checkout
+            uses: checkout
+            with:
+              ref: ${{ steps.resolve_sha.outputs.sha }}
+              allow-unsafe-pr-checkout: true
+          - name: Download_pr_filelist
+            uses: obs-download
+            with:
+              endpoint: "https://obs.cn-north-4.myhuaweicloud.com"
+              bucket: "ascend-ci"
+              access-key: ${{ secrets.AK }}
+              secret-key: ${{ secrets.SK }}
+              key: "${{ env.obs_path }}/pr_filelist.txt"
+              path: ${{ steps.process_checkout.outputs.path }}
+          - name: Build
+            run: |
+              bash ${{ steps.process_checkout.outputs.path }}/build.sh \
+                -f pr_filelist.txt --backend=pypto --test
+        runs-on: ['self-hosted', 'arch=x64', 'spec=large']
+        container:
+          image: ${{ vars.PYPTO_IMAGE }}
     pre:
       - type: auto
     fail-fast: false

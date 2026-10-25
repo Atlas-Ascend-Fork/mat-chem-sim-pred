@@ -27,6 +27,13 @@ def test_soc_list_declares_910b_910c_950():
         assert soc in text, f"MATCHEM_SOCS missing {soc}"
 
 
+def test_backends_declared():
+    text = (ROOT / "cmake" / "variables.cmake").read_text()
+    assert "MATCHEM_BACKENDS" in text
+    for backend in ("ascendc", "pypto"):
+        assert backend in text, f"MATCHEM_BACKENDS missing {backend}"
+
+
 def test_msopgen_ops_have_sources():
     jsons = list(ROOT.glob("*/msopgen/*.json")) + list(ROOT.glob("*/*/msopgen/*.json"))
     assert jsons, "no msopgen/*.json found"

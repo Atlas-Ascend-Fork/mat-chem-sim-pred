@@ -49,8 +49,15 @@ source_cann_env
 # 列举算子
 # ---------------------------------------------------------------------------
 if [ "$LIST_ONLY" = true ]; then
-    echo "Discovered ${#ALL_OPERATORS[@]} CMake operators:"
-    printf '  %s\n' "${ALL_OPERATORS[@]}"
+    list_ops=("${ALL_OPERATORS[@]}")
+    if [ "$BACKEND" != all ]; then
+        list_ops=()
+        for op in "${ALL_OPERATORS[@]}"; do
+            [ "$(op_backend "$op")" = "$BACKEND" ] && list_ops+=("$op")
+        done
+    fi
+    echo "Discovered ${#list_ops[@]} operators (backend=${BACKEND}):"
+    printf '  %s\n' "${list_ops[@]}"
     echo ""
     echo "Python operators (use --python):"
     printf '  %s\n' "${PYTHON_OPERATORS[@]}"
@@ -162,6 +169,16 @@ if [ "$BUILD_ALL" = true ] || { [ "$CLEAN_MODE" = true ] && [ ${#OPERATORS[@]} -
     OPERATORS=("${ALL_OPERATORS[@]}")
 fi
 
+# 后端过滤：--backend=pypto 且未显式给算子时，默认选全部 pypto 算子。
+if [ "$BACKEND" != all ]; then
+    [ ${#OPERATORS[@]} -eq 0 ] && OPERATORS=("${ALL_OPERATORS[@]}")
+    filter_by_backend "$BACKEND"
+    if [ ${#OPERATORS[@]} -eq 0 ]; then
+        echo "[SKIP] No operators for backend ${BACKEND}"
+        exit 0
+    fi
+fi
+
 if [ ${#OPERATORS[@]} -eq 0 ]; then
     usage
     exit 0
@@ -178,10 +195,24 @@ fi
 # 打包模式：msopgen -> 生成工程 -> build -> custom_opp_*.run
 # ---------------------------------------------------------------------------
 if [ "$PACKAGE_MODE" = true ]; then
-    package_args=(--soc "$SOC_VERSION" --framework "$PACKAGE_FRAMEWORK" --out "$PACKAGE_OUT")
-    [ "$PACKAGE_REQUIRE_ALL" = true ] && package_args+=(--require-all)
-    bash "$REPO_ROOT/scripts/package_opp.sh" "${package_args[@]}" "${OPERATORS[@]}"
-    exit $?
+    ascendc_ops=()
+    pypto_ops=()
+    for op in "${OPERATORS[@]}"; do
+        case "$(op_backend "$op")" in
+            pypto) pypto_ops+=("$op") ;;
+            *)     ascendc_ops+=("$op") ;;
+        esac
+    done
+    rc=0
+    if [ ${#ascendc_ops[@]} -gt 0 ]; then
+        package_args=(--soc "$SOC_VERSION" --framework "$PACKAGE_FRAMEWORK" --out "$PACKAGE_OUT")
+        [ "$PACKAGE_REQUIRE_ALL" = true ] && package_args+=(--require-all)
+        bash "$REPO_ROOT/scripts/package_opp.sh" "${package_args[@]}" "${ascendc_ops[@]}" || rc=1
+    fi
+    if [ ${#pypto_ops[@]} -gt 0 ]; then
+        bash "$REPO_ROOT/scripts/package_pypto.sh" --out "$PACKAGE_OUT" "${pypto_ops[@]}" || rc=1
+    fi
+    exit "$rc"
 fi
 
 # ---------------------------------------------------------------------------
@@ -202,13 +233,17 @@ fi
 if gtest_available; then
     HAS_GTEST=true
 fi
-if [ "$RUN_TEST" = true ] && [ "$UT_MODE" = required ] && [ "$HAS_GTEST" != true ]; then
-    die "UT is required (--ut=required) but GTest was not found on this machine"
+has_ascendc=false
+for op in "${OPERATORS[@]}"; do
+    [ "$(op_backend "$op")" = ascendc ] && has_ascendc=true && break
+done
+if [ "$RUN_TEST" = true ] && [ "$UT_MODE" = required ] && [ "$has_ascendc" = true ] && [ "$HAS_GTEST" != true ]; then
+    die "UT is required (--ut=required) for Ascend C operators but GTest was not found on this machine"
 fi
-if [ "$RUN_TEST" = true ] && [ "$UT_MODE" = auto ] && [ "$HAS_GTEST" != true ]; then
+if [ "$RUN_TEST" = true ] && [ "$UT_MODE" = auto ] && [ "$has_ascendc" = true ] && [ "$HAS_GTEST" != true ]; then
     for op in "${OPERATORS[@]}"; do
-        if [ -d "$op/tests" ]; then
-            log_warn "GTest not found; unit tests are skipped (-DBUILD_TESTS=OFF). Use --ut=required to fail instead."
+        if [ "$(op_backend "$op")" = ascendc ] && [ -d "$op/tests" ]; then
+            log_warn "GTest not found; Ascend C unit tests are skipped (-DBUILD_TESTS=OFF). Use --ut=required to fail instead."
             break
         fi
     done

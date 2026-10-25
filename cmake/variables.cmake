@@ -43,6 +43,12 @@ set(MATCHEM_PYTHON_OPERATORS
 set(MATCHEM_NPU_PYTHON_OPERATORS
 )
 
+# 支持的算子后端：ascendc（CMake + Ascend C）、pypto（Python DSL/运行时）
+set(MATCHEM_BACKENDS
+    "ascendc"
+    "pypto"
+)
+
 # 目标 SOC 清单（打包/多芯片 CI 的唯一事实源）
 # 格式：<id>|<SOC_VERSION>|<门控级别>
 # 门控级别：pr = PR 跑；master = 仅 master/手动跑

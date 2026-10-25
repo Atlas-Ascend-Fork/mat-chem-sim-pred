@@ -133,13 +133,33 @@ def test_r5_reference(operators: list[str], exceptions: dict[str, list[str]]) ->
     )
 
 
+def op_backend(path: Path) -> str:
+    manifest = path / "op.yaml"
+    if not manifest.is_file():
+        return "ascendc"
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("backend:"):
+            return stripped.split(":", 1)[1].strip().strip("\"'") or "ascendc"
+    return "ascendc"
+
+
 def test_r7_msopgen(operators: list[str], exceptions: dict[str, list[str]]) -> None:
     assert_no_new_gaps(
         operators,
         exceptions,
         "missing_msopgen",
-        lambda path: not list((path / "msopgen").glob("*.json")),
+        lambda path: op_backend(path) == "ascendc"
+        and not list((path / "msopgen").glob("*.json")),
     )
+
+
+def test_pypto_contract(operators: list[str]) -> None:
+    pypto_ops = [op for op in operators if op_backend(REPO_ROOT / op) == "pypto"]
+    for op in pypto_ops:
+        path = REPO_ROOT / op
+        assert (path / "pyproject.toml").is_file(), f"{op} missing pyproject.toml"
+        assert (path / "tests").is_dir(), f"{op} missing tests/"
 
 
 def test_r6_no_tracked_build_artifacts() -> None:

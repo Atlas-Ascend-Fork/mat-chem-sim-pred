@@ -11,8 +11,36 @@
 # 单算子编译 / 清理。
 # 每个算子仍是独立 CMake 工程（-S <op>），这是当前阶段的契约。
 
+# PyPTO / Python 后端：命令由算子自己的 op.yaml 声明，build.sh 只负责调度。
+build_single_pypto() {
+    local op="$1" backend build_cmd test_cmd
+    backend="$(op_backend "$op")"
+    [ -f "$op/op.yaml" ] || { echo "[FAIL] $op — op.yaml not found"; return 1; }
+
+    build_cmd="$(op_field "$op" build 2>/dev/null || true)"
+    test_cmd="$(op_field "$op" test 2>/dev/null || true)"
+    build_cmd="${build_cmd:-${PYTHON_BIN:-python3} -m pip install -e .}"
+    test_cmd="${test_cmd:-${PYTHON_BIN:-python3} -m pytest tests -q}"
+
+    echo "[BUILD] $op (backend=$backend)"
+    ( cd "$op" && bash -c "$build_cmd" ) \
+        || { echo "[FAIL] $op — backend build failed: $build_cmd"; return 1; }
+
+    if [ "$BUILD_ONLY" != "true" ] && [ "$RUN_TEST" = true ] && [ "$UT_MODE" != "off" ]; then
+        echo "[TEST] $op (backend=$backend)"
+        ( cd "$op" && bash -c "$test_cmd" ) \
+            || { echo "[FAIL] $op — backend test failed: $test_cmd"; return 1; }
+    fi
+    echo "[ OK ] $op"
+    return 0
+}
+
 build_single() {
     local op="$1" want_tests=false
+    if [ "$(op_backend "$op")" != ascendc ]; then
+        build_single_pypto "$op"
+        return $?
+    fi
     if [ ! -f "$op/CMakeLists.txt" ]; then
         echo "[SKIP] $op — CMakeLists.txt not found"
         return 1
@@ -55,6 +83,11 @@ build_single() {
 
 clean_single() {
     local op="$1"
+    if [ "$(op_backend "$op")" != ascendc ]; then
+        echo "[CLEAN] $op (backend=$(op_backend "$op"))"
+        rm -rf "$op/build" "$op/dist" "$op"/*.egg-info
+        return 0
+    fi
     if [ -d "$op/build" ]; then
         echo "[CLEAN] $op/build"
         rm -rf "$op/build"

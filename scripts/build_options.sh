@@ -32,6 +32,7 @@ PACKAGE_MODE=false
 PACKAGE_OUT="build_out/opp"
 PACKAGE_FRAMEWORK="tf"
 PACKAGE_REQUIRE_ALL=false
+BACKEND="all"            # all | ascendc | pypto
 UT_MODE="auto"           # auto | required | off
 REFERENCE_MODE="required" # auto | required | off
 SHARD_INDEX=1
@@ -76,6 +77,7 @@ Options:
   --package-out=<dir> Package output directory (default: build_out/opp)
   --framework=<name>  msopgen framework for --package (default: tf)
   --package-require-all  Fail if any selected operator has no msopgen/*.json
+  --backend=<name>   all | ascendc | pypto (default: all)
   --build-only       Build only, skip ctest
   --skip-check       Skip "md-only" check for -f mode
   -h, --help         Show this help
@@ -158,6 +160,13 @@ parse_args() {
             --package-out=*) PACKAGE_OUT="${1#--package-out=}" ;;
             --framework=*)   PACKAGE_FRAMEWORK="${1#--framework=}" ;;
             --package-require-all) PACKAGE_REQUIRE_ALL=true ;;
+            --backend=*)
+                BACKEND="${1#--backend=}"
+                case "$BACKEND" in
+                    all|ascendc|pypto) ;;
+                    *) die "--backend must be all|ascendc|pypto" ;;
+                esac
+                ;;
             -f)
                 shift
                 FILELIST="${1:-}"

@@ -1,0 +1,8 @@
+# PyPTO 算子清单示例（模板，不参与构建）
+backend: pypto
+soc:
+  - Ascend910B1
+  - Ascend910C
+build: python3 -m pip install -e .
+test: python3 -m pytest tests -q
+package: python3 -m build --wheel

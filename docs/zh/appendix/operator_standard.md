@@ -8,7 +8,7 @@
 
 | # | 标准 | 检查方式 |
 |---|---|---|
-| S1 | 有 `msopgen/*.json` 算子原型 | `tests/ut/test_repo_layout.py` R7 |
+| S1 | 有 `msopgen/*.json`（ascendc）或 `op.yaml` + `pyproject.toml`（pypto） | `tests/ut/test_repo_layout.py` R7 / PyPTO 契约 |
 | S2 | 有 `op_host/`、`op_kernel/`，能独立构建 | `build.sh <op>` / 顶层 CMake |
 | S3 | 有 `tests/`，且测试有真实断言 | UT stage / 人工评审 |
 | S4 | 有 `reference/` 或等价 golden | R5 + 测试实际引用 |
