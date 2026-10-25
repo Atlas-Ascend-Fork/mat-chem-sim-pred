@@ -8,7 +8,7 @@
 - 纳入构建：59 个；`md/dissipative_particle_dynamics` 实现未完成，暂缓 CI（`cmake/variables.cmake` 的 `MATCHEM_SKIP_OPERATORS`）。
 - 另有两个 Python 参考实现不进算子计数：`experimental/DAO`、`experimental/SmallData`。
 - 目录命名以实际路径为准；命名不合规的存量算子记录在 `tests/ut/layout_exceptions.json`，新增算子必须小写下划线。
-- 阶段口径：研发域 = `md/`、`pde/`、`molecular/`（设计、仿真、试制）；生产域 = `pid/`、`time_series/`（控制、质量、运行）。
+- 阶段口径：研发域 = `md/`、`pde/`、`graph/`、`geometry/`（设计、仿真、试制）；生产域 = `pid/`、`time_series/`（控制、质量、运行）。
 
 ## 分子动力学（md）
 
@@ -76,9 +76,9 @@
 | `fused_kan_spline_basis_linear` | TimeKAN 三阶 Cox-de Boor B 样条基 + SiLU 残差收缩融合 | ✅ Ascend C |
 | `anomaly_association_discrepancy_kl_fused` | Anomaly Transformer prior/series 对称 KL 差异融合 | ✅ Ascend C |
 
-## 图、点云与分子几何（molecular）
+## 图学习（graph）
 
-目录：`molecular/`；算子数：22。把 PyG / PointNet++ / DimeNet / GemNet 的稀疏图传播、注意力聚合、邻域查询与多体几何下沉为单 kernel。
+目录：`graph/`；算子数：16。把 PyG 的 CSR 稀疏图传播、注意力聚合与图池化下沉为单 kernel。
 
 | 算子 | 说明 | 状态 |
 |---|---|---|
@@ -91,19 +91,27 @@
 | `csr_tagcn_basis_k3_fused` | `K=3` 四阶特征基逐级传播 | ✅ Ascend C |
 | `csr_gcn2_residual_propagate_fused` | 传播 + 初始残差融合 | ✅ Ascend C |
 | `csr_transformer_dot_attention_aggregate_fused` | 缩放点积多头注意力 + CSR softmax + 聚合 | ✅ Ascend C |
+| `csr_point_transformer_attention_aggregate_fused` | 点云 CSR 图上的位置注意力 + 分段 softmax + 位置增量聚合 | ✅ Ascend C |
+| `csr_agnn_cosine_attention_aggregate_fused` | AGNN 余弦打分 + CSR 分段 softmax + 加权聚合 | ✅ Ascend C |
+| `csr_genconv_softmax_aggregate_fused` | GENConv + SoftmaxAggregation 的消息与聚合融合 | ✅ Ascend C |
+| `csr_supergat_dot_attention_aggregate_fused` | SuperGAT-SD 缩放点积注意力消息阶段融合 | ✅ Ascend C |
+| `attentional_aggregation_fused` | PyG AttentionalAggregation 的稳定 softmax 加权图池化 | ✅ Ascend C |
+| `edgepool_sorted_rank_contract_fused` | PyG EdgePooling 的贪心端点匹配与簇 ID 生成 | ✅ Ascend C |
+| `sort_aggregation_topk_fused` | DGCNN SortAggregation 的稳定排序 + TopK + 零填充 | ✅ Ascend C |
+
+## 点云与分子几何（geometry）
+
+目录：`geometry/`；算子数：6。把 PointNet++、DimeNet、GemNet 的邻域查询、点对特征与
+多体几何下沉为单 kernel。
+
+| 算子 | 说明 | 状态 |
+|---|---|---|
 | `farthest_point_sampling_fused` | 点云最远点采样（FPS）中心点选取 | ✅ Ascend C |
 | `point_ball_query_fused` | 球半径邻域查询 + 距离过滤 + 有效计数 | ✅ Ascend C |
-| `csr_point_transformer_attention_aggregate_fused` | 位置注意力打分 + 分段 softmax + 位置增量聚合 | ✅ Ascend C |
 | `ppf_point_pair_features_fused` | 点对特征（距离 + 三个法向角）计算 | ✅ Ascend C |
 | `dimenet_triplet_enumerate_fused` | 方向性 `k→j→i` 三元组枚举 | ✅ Ascend C |
 | `dimenet_triplet_angle_fused` | 三元组角度 `atan2` 几何计算 | ✅ Ascend C |
 | `gemnet_quadruplet_geometry_fused` | 官方 GemNet 四元组几何（角度与投影扭转角） | ✅ Ascend C |
-| `attentional_aggregation_fused` | PyG AttentionalAggregation 的稳定 softmax 加权图池化 | ✅ Ascend C |
-| `csr_agnn_cosine_attention_aggregate_fused` | AGNN 余弦打分 + CSR 分段 softmax + 加权聚合 | ✅ Ascend C |
-| `csr_genconv_softmax_aggregate_fused` | GENConv + SoftmaxAggregation 的消息与聚合融合 | ✅ Ascend C |
-| `csr_supergat_dot_attention_aggregate_fused` | SuperGAT-SD 缩放点积注意力消息阶段融合 | ✅ Ascend C |
-| `edgepool_sorted_rank_contract_fused` | PyG EdgePooling 的贪心端点匹配与簇 ID 生成 | ✅ Ascend C |
-| `sort_aggregation_topk_fused` | DGCNN SortAggregation 的稳定排序 + TopK + 零填充 | ✅ Ascend C |
 
 ---
 

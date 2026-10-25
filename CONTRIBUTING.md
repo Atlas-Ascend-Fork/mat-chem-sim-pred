@@ -24,9 +24,10 @@ mat-chem-sim-pred 是基于华为 CANN（Ascend C）计算框架的工业制造�
 mat-chem-sim-pred/
 ├── md/            # 分子动力学（6 个算子）
 ├── pde/           # AI for PDE（3 个算子 + pde_common）
-├── molecular/     # 图 / 点云 / 分子几何（26 个算子）
+├── graph/         # 图学习（16 个算子）
+├── geometry/      # 点云与分子几何（6 个算子）
 ├── pid/           # PID 模型辨识与整定（12 个算子）
-├── time_series/   # 时序预测（14 个算子）
+├── time_series/   # 时序预测（17 个算子）
 ├── common/        # 跨算子公共层
 ├── cmake/         # 构建配置与算子族单一配置源（variables.cmake）
 ├── docs/zh/       # 文档中心
@@ -145,8 +146,8 @@ git log --pretty=fuller
 
 ### 3.1 标准目录
 
-新建算子使用小写加下划线命名，放入 `cmake/variables.cmake` 登记的五个一级族之一：
-`md/`、`pde/`、`molecular/`、`pid/`、`time_series/`。
+新建算子使用小写加下划线命名，放入 `cmake/variables.cmake` 登记的六个一级族之一：
+`md/`、`pde/`、`graph/`、`geometry/`、`pid/`、`time_series/`。
 
 可被构建系统发现的算子族登记在 `cmake/variables.cmake` 的 `MATCHEM_OP_CATEGORIES`；
 暂缓构建、Python 算子与共享目录同样在该文件登记。`build.sh` 与顶层 `CMakeLists.txt` 只消费这份配置。

@@ -8,18 +8,15 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 import torch
 from torch import Generator
 
-try:
-    from prediction.ProcessControl.NonTemporalPrediction.benchmark_common import (
-        appnp_shape_helpers,
-    )
-except ModuleNotFoundError:
-    from benchmark_common import appnp_shape_helpers
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmark_common import appnp_shape_helpers
 
 TimingRecord, load_module, setup_runtime, timing_result = appnp_shape_helpers()
 

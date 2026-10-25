@@ -21,9 +21,10 @@
 set(MATCHEM_OP_CATEGORIES
     "md"
     "pde"
+    "graph"
+    "geometry"
     "pid"
     "time_series"
-    "molecular"
 )
 
 # 暂不纳入构建的算子（实现未完成，补齐后从此处移除）
@@ -66,7 +67,8 @@ set(MATCHEM_GLOBAL_BUILD_PATHS
 
 # DirectMatchDir：只认该目录下的直接文件变更；子目录变更由算子自身路径匹配。
 set(MATCHEM_DIRECT_MATCH_DIRS
-    "molecular"
+    "graph"
+    "geometry"
 )
 
 # 默认 SOC（可被 --soc= / -DSOC_VERSION= 覆盖）

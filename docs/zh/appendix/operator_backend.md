@@ -2,7 +2,7 @@
 
 仓库不再假设“算子 = CMake + Ascend C”。后端（backend）与能力族（family）是两个独立维度：
 
-- family：`md/`、`pde/`、`pid/`、`time_series/`、`molecular/`，按业务能力划分；
+- family：`md/`、`pde/`、`graph/`、`geometry/`、`pid/`、`time_series/`，按业务能力划分；
 - backend：`ascendc`、`pypto`，按实现与构建方式划分。
 
 ## 1. 算子声明

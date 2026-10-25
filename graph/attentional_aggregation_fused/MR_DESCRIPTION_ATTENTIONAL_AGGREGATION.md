@@ -28,7 +28,7 @@ clear API boundary and does not duplicate the model's learnable gate network.
 ## Scope
 
 ~~~
-molecular/attentional_aggregation_fused/
+graph/attentional_aggregation_fused/
 ~~~
 
 The package includes Ascend C kernel and host launch code, a Python reference,

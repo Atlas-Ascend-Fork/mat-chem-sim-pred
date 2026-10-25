@@ -9,18 +9,16 @@ import collections
 import ctypes
 import json
 import logging
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import SAGEConv
 
-try:
-    from prediction.ProcessControl.NonTemporalPrediction.benchmark_common import (
-        sage_helpers,
-    )
-except ModuleNotFoundError:
-    from benchmark_common import sage_helpers
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmark_common import sage_helpers
 
 (
     hash_file,

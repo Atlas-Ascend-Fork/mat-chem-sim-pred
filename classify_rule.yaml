@@ -7,7 +7,8 @@ mat_chem_sim_pred:
     release:
       - md
       - pde
-      - molecular
+      - graph
+      - geometry
       - pid
       - time_series
       - common

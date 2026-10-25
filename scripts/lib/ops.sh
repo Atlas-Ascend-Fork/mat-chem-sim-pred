@@ -87,7 +87,7 @@ resolve_operator() {
     return 1
 }
 
-# 判断算子是否匹配前缀列表（支持逗号分隔，如 "pid,time_series,molecular"）。
+# 判断算子是否匹配前缀列表（支持逗号分隔，如 "pid,time_series,graph"）。
 matches_prefix() {
     local path="$1" prefixes="$2" prefix
     local IFS=','

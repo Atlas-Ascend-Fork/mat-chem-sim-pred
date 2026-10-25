@@ -41,7 +41,8 @@ R1–R7 的现状由 `tests/ut/layout_exceptions.json` 记录；例外只能缩�
 |---|---|---|---|---|
 | B0 | 基础设施 | 打包脚本、SOC 清单、R7 | 真机跑通一个 `.run` | cfc_scan_fused 可安装、可调用 |
 | B1 | `time_series/` 17 个 | 15 个有 msopgen JSON | 补 2 个 JSON、补真 UT、逐 op 打包 | 17/17 有 JSON，至少 3 个有断言 UT |
-| B2 | `molecular/` 22 个 | 0 个 JSON，22 个有 model_e2e | 补 JSON、把 e2e 收编成 UT/ST | 22/22 有 JSON，UT 覆盖 Graph 类 |
+| B2a | `graph/` 16 个 | 0 个 JSON，16 个有 model_e2e | 补 JSON、把 e2e 收编成 UT/ST | 16/16 有 JSON，UT 覆盖 Graph 类 |
+| B2b | `geometry/` 6 个 | 0 个 JSON，6 个有 model_e2e | 补 JSON、把 e2e 收编成 UT/ST | 6/6 有 JSON，UT 覆盖几何类 |
 | B3 | `pid/` 12 个 | 0 个 JSON，12 个有 Python tests | 补 JSON、把 Python 测试转成 C++ UT 或保留为 reference | 12/12 有 JSON |
 | B4 | `md/` + `pde/` 8 个 | 0 个 JSON，部分缺 tests/reference | 补 JSON、补 tests/reference | 8/8 满足 S1–S5 |
 

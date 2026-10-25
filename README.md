@@ -36,16 +36,16 @@ mat-chem-sim-pred 是 [CANN](https://hiascend.com/software/cann) 面向**工业�
 
 | 阶段 | 典型任务 | 已落地算子族 | 规划方向 |
 |---|---|---|---|
-| 研发（设计 / 仿真 / 试制） | 分子与材料模拟、PDE / 结构 / 流体仿真、几何与结构表征、小数据寻优 | `md/`、`pde/`、`molecular/`、`experimental/` | ML 势、材料性质与结构生成、CAD / 网格几何、仿真代理 |
+| 研发（设计 / 仿真 / 试制） | 分子与材料模拟、PDE / 结构 / 流体仿真、几何与结构表征、小数据寻优 | `md/`、`pde/`、`graph/`、`geometry/`、`experimental/` | ML 势、材料性质与结构生成、CAD / 网格几何、仿真代理 |
 | 生产（控制 / 质量 / 运行） | 过程控制与整定、生产时序预测、质量检测、设备健康、排产与能耗优化 | `pid/`、`time_series/` | 质量与检测、设备健康、生产运行优化 |
 
 行业覆盖（需求来源，不是目录划分）：
 
 | 行业 | 研发 | 生产 |
 |---|---|---|
-| 材料与化工 | 已覆盖：`md/`、`molecular/` | 已覆盖：`pid/`、`time_series/` |
+| 材料与化工 | 已覆盖：`md/`、`graph/`、`geometry/` | 已覆盖：`pid/`、`time_series/` |
 | 流程工业（冶金、建材、造纸等） | 部分覆盖：`pde/` | 已覆盖：`pid/`、`time_series/`；质量与运行规划中 |
-| 离散制造（装备、汽车、电子等） | 规划：`pde/`、`molecular/` 的几何能力可复用 | 规划：质量检测、设备健康、排产调度 |
+| 离散制造（装备、汽车、电子等） | 规划：`pde/`、`geometry/` 的几何能力可复用 | 规划：质量检测、设备健康、排产调度 |
 
 > 规划项的完整清单与状态见 [roadmap.md](roadmap.md)；已入库算子见 [docs/zh/op_list.md](docs/zh/op_list.md)。
 
@@ -55,7 +55,8 @@ mat-chem-sim-pred 是 [CANN](https://hiascend.com/software/cann) 面向**工业�
 |---|---|---|---:|---|
 | 分子与材料模拟（AI4MD） | `md/` | 研发 | 6 | 经典力场、静电求和、约束、积分、耗散粒子动力学 |
 | 连续介质仿真（AI4PDE） | `pde/` | 研发 | 3 | PINN / FNO / DeepONet 推理；结构、流体、传热仿真代理的基础 |
-| 图 / 点云 / 分子几何（NonTemporalPrediction） | `molecular/` | 研发 | 22 | GNN 传播与注意力聚合、点云邻域、分子多体几何；可复用于 CAD / 扫描表征 |
+| 图学习（graph） | `graph/` | 研发 | 16 | CSR 图传播、图注意力、图池化；可复用于分子图、社交图、CAD 装配图 |
+| 点云与分子几何（geometry） | `geometry/` | 研发 | 6 | 点云邻域/采样、点对特征、DimeNet/GemNet 多体几何；可复用于 CAD / 扫描表征 |
 | PID 整定全流程（PIDModelFit） | `pid/` | 生产 | 12 | 模型辨识 → 诊断 → 整定 → 仿真选优 → 评估 |
 | 生产时序预测（TimeSeriesForecast） | `time_series/` | 生产 | 17 | SSM 扫描、lag 聚合、LSH 分桶、TimesNet/KAN/Anomaly Transformer 融合；可用于工艺与设备信号 |
 | **合计** | | | **60** | 其中 59 个纳入构建；DPD 实现未完成，暂缓 CI |
@@ -74,7 +75,8 @@ mat-chem-sim-pred/
 ├── common/                 # 跨算子公共层（inc / src / tests）
 ├── md/                     # 研发域：分子与材料模拟算子族（6）
 ├── pde/                    # 研发域：连续介质仿真算子族（3 + pde_common）
-├── molecular/              # 研发域：图 / 点云 / 分子几何算子族（22）
+├── graph/                  # 研发域：图学习算子族（16）
+├── geometry/               # 研发域：点云与分子几何算子族（6）
 ├── pid/                    # 生产域：PID 整定算子族（12）
 ├── time_series/            # 生产域：生产时序算子族（17）
 ├── docs/zh/                # 文档中心：快速入门、算子清单、目录说明
@@ -135,7 +137,7 @@ bash build.sh --ops=lennard_jones,pinn --test
 bash build.sh --python experimental/SmallData
 
 # 6. 按文件清单增量跑参考测试
-bash build.sh --reference-test pid/,time_series/,molecular/ -f pr_filelist.txt -j8
+bash build.sh --reference-test pid/,time_series/,graph/,geometry/ -f pr_filelist.txt -j8
 
 # 7. 顶层聚合编译（需要 CANN；默认全部算子，也可 -DMATCHEM_OP=<path> 只编一个）
 cmake -S . -B build && cmake --build build -j

@@ -2,8 +2,8 @@
 
 本页面向化工、能源、材料与离散制造中的生产环节，聚焦模型辨识、控制器整定、在线预测、质量与设备健康、运行优化等任务。
 
-> v0.2.0 起，原 `prediction/ProcessControl/` 已按能力拆为三个一级算子族：
-> `pid/`、`time_series/`、`molecular/`。本页只保留**生产域**的场景视角；
+> v0.2.0 起，原 `prediction/ProcessControl/` 已按能力拆为四个一级算子族：
+> `pid/`、`time_series/`、`graph/`、`geometry/`。本页只保留**生产域**的场景视角；
 > 研发域（设计、仿真、试制）见 [dir_structure.md](dir_structure.md) 与 [roadmap.md](../../../roadmap.md)。
 
 ## 已落地算子族
@@ -11,8 +11,9 @@
 | 方向 | 算子族 | 阶段 | 状态 | 说明 |
 |------|--------|------|------|------|
 | PID 模型辨识与整定 | [pid/](../../../pid/README.md) | 生产 | ✅ Ascend C | FOPDT/IPDT/SOPDT 多回路多候选辨识、诊断、整定、闭环选优与评估（12 个算子） |
-| 生产时序预测 | [time_series/](../../../time_series/README.md) | 生产 | ✅ Ascend C | SSM/Mamba 扫描、Autoformer/Reformer 聚合、连续时间 RNN 扫描融合（14 个算子） |
-| 图 / 点云 / 分子几何 | [molecular/](../../../molecular/README.md) | 研发 | ✅ Ascend C | GNN 稀疏传播与注意力聚合、点云邻域、分子多体几何（26 个算子）；生产侧可用于质量与设备数据的图表征 |
+| 生产时序预测 | [time_series/](../../../time_series/README.md) | 生产 | ✅ Ascend C | SSM/Mamba 扫描、Autoformer/Reformer 聚合、连续时间 RNN 扫描融合（17 个算子） |
+| 图学习 | [graph/](../../../graph/README.md) | 研发 | ✅ Ascend C | CSR 图传播、图注意力、图池化（16 个算子）；生产侧可用于质量与设备数据的图表征 |
+| 点云与分子几何 | [geometry/](../../../geometry/README.md) | 研发 | ✅ Ascend C | 点云邻域/采样、点对特征、DimeNet/GemNet 多体几何（6 个算子） |
 
 > ✅ Ascend C = 已完成 Ascend C 算子开发，含测试；逐项状态以 [op_list.md](../op_list.md) 为准。
 

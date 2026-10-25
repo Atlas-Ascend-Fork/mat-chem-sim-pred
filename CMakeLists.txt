@@ -9,8 +9,8 @@
 # ----------------------------------------------------------------------------
 # 顶层入口：公共层 + 算子聚合。
 #
-#   cmake -S . -B build                          # 默认编译全部 60 个算子（需 CANN）
-#   cmake -S . -B build -DMATCHEM_OP=molecular/<op>   # 只聚合一个算子
+#   cmake -S . -B build                          # 默认编译全部 59 个算子（需 CANN）
+#   cmake -S . -B build -DMATCHEM_OP=graph/<op>   # 只聚合一个算子
 #   cmake -S . -B build -DMATCHEM_BUILD_OPS=OFF  # 只配置 common/，不需要 CANN
 #
 # 算子目录的 CMakeLists 是父级片段：CANN 探测与工程初始化在 cmake/op_prelude.cmake，

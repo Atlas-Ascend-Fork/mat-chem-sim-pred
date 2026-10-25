@@ -90,7 +90,7 @@ if [ "$PYTHON_TESTS" = true ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 参考测试模式（位置参数可作前缀过滤，支持逗号分隔，如 pid/,time_series/,molecular/）
+# 参考测试模式（位置参数可作前缀过滤，支持逗号分隔，如 pid/,time_series/,graph/）
 # ---------------------------------------------------------------------------
 if [ "$REFERENCE_TEST" = true ]; then
     run_reference_tests "$FILELIST" "${OPERATORS[0]:-}" "$COMMON_DIRS"

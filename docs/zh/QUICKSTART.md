@@ -57,7 +57,7 @@ bash build.sh --ops=lennard_jones --test
 bash build.sh lennard_jones --build-only
 
 # 参考实现（CPU / pytest）
-bash build.sh --reference-test pid/,time_series/,molecular/ -f pr_filelist.txt -j8
+bash build.sh --reference-test pid/,time_series/,graph/,geometry/ -f pr_filelist.txt -j8
 ```
 
 `--reference-test` 的契约：有 `tests/` 的算子必须提供 `reference/reference.py` 或 `reference/__init__.py`；

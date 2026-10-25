@@ -12,6 +12,7 @@
 - 算子包：新增 `scripts/package_opp.sh`、`build.sh --package` 和手动流水线 `opp_package.yml`，支持把带 `msopgen/*.json` 的算子打成 CANN custom opp `.run`；`MATCHEM_SOCS` 登记 910B/910C/950。
 - 治理：新增目录契约 R7（算子必须有 `msopgen/*.json`）和《算子标准与治理》文档；存量 48 个缺口登记为例外，只允许缩小。
 - 治理：GAT / GATv2 / ChebNet / FiLM 四个 GNN 算子因外部环境验证有问题，暂移 `experimental/`；正式算子 64→60、纳入构建 63→59。
+- 结构：`molecular/` 拆为 `graph/`（16 个图学习算子）与 `geometry/`（6 个点云/分子几何算子），算子总数仍 60、纳入构建 59。
 - 后端：新增 `op.yaml` 契约与 `--backend=ascendc|pypto` 分派；PyPTO 复用 Compile/UT 拓扑，默认复用 Ascend C ARM 镜像，`PYPTO_ENABLED` 控制是否启用。
 - 文档：仓库定位从"材料/化学/流程工业"扩展为**工业制造的研发与生产**；README 新增研发域/生产域负载与行业覆盖矩阵；roadmap 重构为研发域（设计与仿真）与生产域（控制、质量与运行），新增质量检测、设备健康、生产运行优化三类规划方向；AGENTS/CONTRIBUTING/目录说明同步口径。
 - 算子族从 `simulation/<方向>/` + `prediction/ProcessControl/<方向>/` 收平为

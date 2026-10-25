@@ -17,7 +17,8 @@ mat-chem-sim-pred/
 │   └── tests/                      # 公共层 UT
 ├── md/                             # 分子动力学算子族（6）
 ├── pde/                            # AI for PDE 算子族（3 + pde_common）
-├── molecular/                      # 图 / 点云 / 分子几何算子族（22）
+├── graph/                          # 图学习算子族（16）
+├── geometry/                       # 点云与分子几何算子族（6）
 ├── pid/                            # PID 整定算子族（12 + common）
 ├── time_series/                    # 时序预测算子族（17 + common）
 ├── docs/zh/                        # 文档中心（跨算子文档）
@@ -54,7 +55,8 @@ mat-chem-sim-pred/
 |---|---|---|---|
 | `md/` | 研发 | 经典分子动力学 | LAMMPS / GROMACS 力场与积分器 |
 | `pde/` | 研发 | 连续介质与 PDE 仿真 | PINN / FNO / DeepONet、结构/流体/传热代理 |
-| `molecular/` | 研发 | 图、点云、分子几何 | PyG、PointNet++、DimeNet、GemNet；可复用于 CAD / 扫描 |
+| `graph/` | 研发 | CSR 图传播、图注意力、图池化 | PyG；可复用于分子图、社交图、CAD 装配图 |
+| `geometry/` | 研发 | 点云、点对特征、分子多体几何 | PointNet++、DimeNet、GemNet；可复用于 CAD / 扫描 |
 | `pid/` | 生产 | 过程模型辨识与整定 | FOPDT / IPDT / SOPDT、ZN / IMC / CC |
 | `time_series/` | 生产 | 生产时序与设备信号 | Mamba、Autoformer、Reformer、CfC |
 
@@ -86,7 +88,7 @@ mat-chem-sim-pred/
 
 ## 族级 `common/`
 
-`pid/common/`、`time_series/common/` 只服务本族；`molecular/` 的共享头直接放在族根。
+`pid/common/`、`time_series/common/` 只服务本族；`graph/`、`geometry/` 的共享头直接放在族根。
 提升到顶层 `common/` 的条件：出现第二个族的使用方，且语义完全一致。
 
 ## 构建入口
@@ -94,7 +96,7 @@ mat-chem-sim-pred/
 ```bash
 bash build.sh <op>                 # 单算子，独立 configure（推荐日常）
 cmake -S . -B build                # 顶层聚合，默认编译全部算子（需 CANN）
-cmake -S . -B build -DMATCHEM_OP=molecular/<op>   # 只聚合一个算子
+cmake -S . -B build -DMATCHEM_OP=graph/<op>   # 只聚合一个算子
 ```
 
 新增算子或算子族都不需要修改 `build.sh` / 顶层 `CMakeLists.txt`。
