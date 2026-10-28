@@ -1,0 +1,2 @@
+add_executable(test_fused_rfft_spectral_filter_ut test_fused_rfft_spectral_filter.cpp)
+add_test(NAME test_fused_rfft_spectral_filter_ut COMMAND test_fused_rfft_spectral_filter_ut)

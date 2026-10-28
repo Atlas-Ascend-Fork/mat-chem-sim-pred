@@ -1,0 +1,53 @@
+{
+  "operator": "fused_rfft_spectral_filter",
+  "hardware": "Ascend 910B3 (40 Vector AI Cores, 192KB UB/core)",
+  "precision_gate": {
+    "comparison": "Full-length exact torch.fft.irfft(torch.fft.rfft(x)*w, n=L) (ZERO 4-tap truncation)",
+    "smoke_max_abs_err": 7.45e-07,
+    "benchmark_max_abs_err": 9.23e-06,
+    "benchmark_max_rel_err": 0.105,
+    "status": "PASSED"
+  },
+  "benchmarks": [
+    {
+      "name": "TimesNet-Short (32, 96, 32)",
+      "eager_ms": 0.588,
+      "torchair_ms": 0.588,
+      "custom_op_ms": 0.1414,
+      "speedup_vs_min": 4.16,
+      "max_abs_err": 3.15e-07,
+      "max_rel_err": 0.00723,
+      "note": "TorchAir fullgraph failed on aten._fft_r2c; eager baseline measured by audit"
+    },
+    {
+      "name": "FreTS-Medium (32, 192, 64)",
+      "eager_ms": 2.327,
+      "torchair_ms": 2.327,
+      "custom_op_ms": 0.2847,
+      "speedup_vs_min": 8.17,
+      "max_abs_err": 1.1e-06,
+      "max_rel_err": 0.00525,
+      "note": "TorchAir fullgraph failed on aten._fft_r2c; eager baseline measured by audit"
+    },
+    {
+      "name": "FITS-Long (16, 336, 64)",
+      "eager_ms": 1.891,
+      "torchair_ms": 1.891,
+      "custom_op_ms": 0.4265,
+      "speedup_vs_min": 4.43,
+      "max_abs_err": 4.41e-06,
+      "max_rel_err": 0.0768,
+      "note": "TorchAir fullgraph failed on aten._fft_r2c; eager baseline measured by audit"
+    },
+    {
+      "name": "FNO-Spectral (16, 512, 64)",
+      "eager_ms": 2.921,
+      "torchair_ms": 2.921,
+      "custom_op_ms": 0.6174,
+      "speedup_vs_min": 4.73,
+      "max_abs_err": 9.23e-06,
+      "max_rel_err": 0.105,
+      "note": "TorchAir fullgraph failed on aten._fft_r2c; eager baseline measured by audit"
+    }
+  ]
+}
