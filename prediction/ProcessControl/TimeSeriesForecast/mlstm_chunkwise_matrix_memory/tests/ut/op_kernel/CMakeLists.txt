@@ -1,0 +1,2 @@
+add_executable(test_mlstm_chunkwise_matrix_memory_ut test_mlstm_chunkwise_matrix_memory.cpp)
+add_test(NAME test_mlstm_chunkwise_matrix_memory_ut COMMAND test_mlstm_chunkwise_matrix_memory_ut)
