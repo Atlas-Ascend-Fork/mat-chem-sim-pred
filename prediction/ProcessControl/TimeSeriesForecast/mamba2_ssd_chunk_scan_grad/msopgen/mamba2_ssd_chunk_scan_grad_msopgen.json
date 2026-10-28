@@ -1,0 +1,68 @@
+[
+  {
+    "op": "Mamba2SsdChunkScanGrad",
+    "language": "cpp",
+    "input_desc": [
+      {
+        "name": "dout",
+        "param_type": "required",
+        "format": [
+          "ND"
+        ],
+        "type": [
+          "float"
+        ]
+      },
+      {
+        "name": "x",
+        "param_type": "required",
+        "format": [
+          "ND"
+        ],
+        "type": [
+          "float"
+        ]
+      },
+      {
+        "name": "dt_decay",
+        "param_type": "required",
+        "format": [
+          "ND"
+        ],
+        "type": [
+          "float"
+        ]
+      },
+      {
+        "name": "cb_matrix",
+        "param_type": "required",
+        "format": [
+          "ND"
+        ],
+        "type": [
+          "float"
+        ]
+      }
+    ],
+    "output_desc": [
+      {
+        "name": "out",
+        "param_type": "required",
+        "format": [
+          "ND"
+        ],
+        "type": [
+          "float"
+        ]
+      }
+    ],
+    "attr": [
+      {
+        "name": "chunk_size",
+        "param_type": "optional",
+        "type": "int",
+        "default_value": "64"
+      }
+    ]
+  }
+]

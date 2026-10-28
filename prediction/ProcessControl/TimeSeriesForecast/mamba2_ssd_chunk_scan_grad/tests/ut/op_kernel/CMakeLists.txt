@@ -1,0 +1,2 @@
+add_executable(test_mamba2_ssd_chunk_scan_grad_ut test_mamba2_ssd_chunk_scan_grad.cpp)
+add_test(NAME test_mamba2_ssd_chunk_scan_grad_ut COMMAND test_mamba2_ssd_chunk_scan_grad_ut)
