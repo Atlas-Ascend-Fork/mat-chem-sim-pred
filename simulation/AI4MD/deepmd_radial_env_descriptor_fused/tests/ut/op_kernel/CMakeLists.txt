@@ -1,0 +1,2 @@
+add_executable(test_deepmd_radial_env_descriptor_fused_ut test_deepmd_radial_env_descriptor_fused.cpp)
+add_test(NAME test_deepmd_radial_env_descriptor_fused_ut COMMAND test_deepmd_radial_env_descriptor_fused_ut)
