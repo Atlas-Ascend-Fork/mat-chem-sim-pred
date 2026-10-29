@@ -39,7 +39,7 @@ $$G = C^{(c)} \big(B^{(c)}\big)^T \in \mathbb{R}^{Q \times Q}, \qquad Y_{\text{o
 
 ## 2. 昇腾 910B `KERNEL_TYPE_MIX_AIC_1_2` 硬件映射与异步乒乓流水
 
-在昇腾 910B（`ascend910b`）上，核函数通过 `KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2)` 请求 `1:2` 的 AI Cube 与 AI Vector 异构协同调度（详见 [`op_kernel/mamba2_ssd_chunk_scan_kernel.cpp`](file:///C:/time_series_cann_ops_handoff_20260718/mat-chem-sim-pred/prediction/ProcessControl/TimeSeriesForecast/mamba2_ssd_chunk_scan/op_kernel/mamba2_ssd_chunk_scan_kernel.cpp)）：
+在昇腾 910B（`ascend910b`）上，核函数通过 `KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2)` 请求 `1:2` 的 AI Cube 与 AI Vector 异构协同调度（详见 [`op_kernel/mamba2_ssd_chunk_scan_kernel.cpp`](../op_kernel/mamba2_ssd_chunk_scan_kernel.cpp)）：
 
 ### 2.1 $N=64, P=64, Q=64$ 的 4 级异步流水 (`ProcessChunkMix64Pipelined`)
 ```mermaid
