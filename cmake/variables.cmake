@@ -18,13 +18,16 @@
 # 注意：保持 set(...) 的开括号独立成行、闭括号独占一行，bash 解析依赖这个格式。
 
 # 算子族根目录（相对仓库根）
+#
+# 只列出"目录已经是新布局"或"旧根仍参与构建"的目录。尚未迁移的族不在这里：
+# prediction/ProcessControl/PIDModelFit（12 个算子）迁移会把整族既有的静态检查
+# 债务当成新文件送进社区 CodeCheck，因此随该族的去重重构单独提交，不并入本 PR。
 set(MATCHEM_OP_CATEGORIES
-    # 新布局：一级能力族
+    # 新布局：一级能力族（新算子按族落位，无需改本文件以外的任何构建脚本）
     "md"
     "pde"
     "graph"
     "geometry"
-    "pid"
     "time_series"
     # 兼容层（迁移期）：未迁移的算子仍在上游旧路径下，按旧根发现；迁完一族删一行
     "simulation/AI4MD"

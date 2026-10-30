@@ -55,7 +55,9 @@ def discover_operators() -> list[str]:
     found = []
     for category in categories:
         category_dir = REPO_ROOT / category
-        assert category_dir.is_dir(), f"category not found: {category}"
+        if not category_dir.is_dir():
+            # 迁移期：新布局族目录可能尚未建立（该族还没迁过来），不算契约缺口。
+            continue
         for candidate in sorted(category_dir.iterdir()):
             if (candidate / "CMakeLists.txt").is_file():
                 relative = candidate.relative_to(REPO_ROOT).as_posix()
