@@ -30,7 +30,8 @@
                 <filteritem type="filename" name=".gitignore" desc="Git ignore rules"/>
                 <filteritem type="filename" name=".clang-format" desc="Code style config"/>
                 <filteritem type="filename" name=".gitkeep" desc="Git directory placeholder, no license header required"/>
-            </filefilter>
+                            <filteritem type="filename" name="*.json" desc="JSON data and config files"/>
+</filefilter>
             <filefilter name="copyrightPolicyFilter" desc="Filters for copyright header policies">
                 <filteritem type="filename" name="*.yaml" desc="YAML config files"/>
                 <filteritem type="filename" name="*.yml" desc="YAML config files"/>
@@ -39,7 +40,8 @@
                 <filteritem type="filename" name=".gitignore" desc="Git ignore rules"/>
                 <filteritem type="filename" name=".clang-format" desc="Code style config"/>
                 <filteritem type="filename" name=".gitkeep" desc="Git directory placeholder, no copyright header required"/>
-            </filefilter>
+                            <filteritem type="filename" name="*.json" desc="JSON data and config files"/>
+</filefilter>
             <filefilter name="licenseFileNamePolicyFilter" desc="Filters for LICENSE file policies">
             </filefilter>
             <filefilter name="readmeFileNamePolicyFilter" desc="Filters for README file policies">
