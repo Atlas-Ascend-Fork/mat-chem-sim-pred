@@ -25,6 +25,7 @@
 
 import json
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -47,20 +48,24 @@ def read_cmake_list(name: str) -> list[str]:
     return re.findall(r'"([^"]*)"', match.group(1))
 
 
+def operator_dirs(category: str) -> list[Path]:
+    """某个族目录下的算子目录；族目录尚未建立时返回空（迁移期正常态）。"""
+    category_dir = REPO_ROOT / category
+    if not category_dir.is_dir():
+        return []
+    return [
+        c for c in sorted(category_dir.iterdir()) if (c / "CMakeLists.txt").is_file()
+    ]
+
+
 def discover_operators() -> list[str]:
-    categories = read_cmake_list("MATCHEM_OP_CATEGORIES")
     skipped = set(read_cmake_list("MATCHEM_SKIP_OPERATORS"))
     found = []
-    for category in categories:
-        category_dir = REPO_ROOT / category
-        if not category_dir.is_dir():
-            # 迁移期：新布局族目录可能尚未建立（该族还没迁过来），不算契约缺口。
-            continue
-        for candidate in sorted(category_dir.iterdir()):
-            if (candidate / "CMakeLists.txt").is_file():
-                relative = candidate.relative_to(REPO_ROOT).as_posix()
-                if relative not in skipped:
-                    found.append(relative)
+    for category in read_cmake_list("MATCHEM_OP_CATEGORIES"):
+        for candidate in operator_dirs(category):
+            relative = candidate.relative_to(REPO_ROOT).as_posix()
+            if relative not in skipped:
+                found.append(relative)
     return found
 
 
@@ -155,6 +160,21 @@ def test_pypto_contract() -> None:
         path = REPO_ROOT / op
         assert (path / "pyproject.toml").is_file(), f"{op} missing pyproject.toml"
         assert (path / "tests").is_dir(), f"{op} missing tests/"
+
+
+def test_r6_no_tracked_build_artifacts() -> None:
+    try:
+        tracked = subprocess.run(
+            ["git", "ls-files"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.splitlines()
+    except (OSError, subprocess.CalledProcessError):
+        pytest.skip("git not available")
+    offenders = [path for path in tracked if BUILD_ARTIFACTS.search(path)]
+    assert not offenders, f"build artifacts are tracked: {offenders[:10]}"
 
 
 def test_skipped_operators_are_not_discovered() -> None:
