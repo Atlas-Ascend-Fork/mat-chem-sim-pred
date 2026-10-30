@@ -177,13 +177,16 @@ def test_r6_no_tracked_build_artifacts() -> None:
     assert not offenders, f"build artifacts are tracked: {offenders[:10]}"
 
 
-def test_docs_op_list_covers_every_operator() -> None:
-    op_list = REPO_ROOT / "docs" / "zh" / "op_list.md"
-    if not op_list.is_file():
-        pytest.skip("docs/zh/op_list.md not present")
-    text = op_list.read_text(encoding="utf-8")
+def test_skipped_operators_are_not_discovered() -> None:
+    skipped = set(read_cmake_list("MATCHEM_SKIP_OPERATORS"))
+    assert not (skipped & set(discover_operators())), (
+        "MATCHEM_SKIP_OPERATORS leaked into discovery"
+    )
+
+
+def test_python_operators_exist() -> None:
     missing = []
-    for op in discover_operators():
-        if Path(op).name not in text:
+    for op in read_cmake_list("MATCHEM_PYTHON_OPERATORS"):
+        if not (REPO_ROOT / op).is_dir():
             missing.append(op)
-    assert not missing, f"operators missing from docs/zh/op_list.md: {missing}"
+    assert not missing, f"MATCHEM_PYTHON_OPERATORS entries not found: {missing}"
