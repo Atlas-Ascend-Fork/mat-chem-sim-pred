@@ -1,0 +1,200 @@
+#!/bin/bash
+# ----------------------------------------------------------------------------
+# Copyright (c) 2026 Huawei Technologies Co., Ltd.
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+# CANN Open Software License Agreement Version 2.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
+# ----------------------------------------------------------------------------
+# 算子发现与增量解析。全部基于 cmake/variables.cmake，新增算子无需改脚本。
+
+# 读取算子清单 op.yaml 的字段（简单 key: value，不引入 YAML 解析器）。
+op_field() {
+    local op="$1" key="$2" file="$1/op.yaml"
+    [ -f "$file" ] || return 1
+    sed -n "s/^[[:space:]]*${key}:[[:space:]]*//p" "$file" | head -n 1 \
+        | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+}
+
+# 算子后端；没有 op.yaml 的存量算子按 ascendc 兼容。
+op_backend() {
+    local backend
+    backend="$(op_field "$1" backend 2>/dev/null || true)"
+    echo "${backend:-ascendc}"
+}
+
+# 动态发现算子：族目录的直接子目录。
+#   ascendc：有 CMakeLists.txt（或无 op.yaml 的存量目录）
+#   pypto  ：op.yaml 声明 backend: pypto
+discover_operators() {
+    local root dir op skip skip_op backend
+    ALL_OPERATORS=()
+    for root in "${OPERATOR_ROOTS[@]}"; do
+        [ -d "$root" ] || continue
+        for dir in "$root"/*/; do
+            op="${dir%/}"
+            if [ -f "$op/op.yaml" ]; then
+                backend="$(op_backend "$op")"
+            else
+                backend="ascendc"
+            fi
+            if [ "$backend" = ascendc ]; then
+                [ -f "$op/CMakeLists.txt" ] || continue
+            else
+                [ -f "$op/op.yaml" ] || continue
+            fi
+            skip=false
+            for skip_op in "${SKIP_OPERATORS[@]}"; do
+                if [ "$op" = "$skip_op" ]; then
+                    skip=true
+                    break
+                fi
+            done
+            [ "$skip" = true ] || ALL_OPERATORS+=("$op")
+        done
+    done
+}
+
+# 按 --backend 过滤当前算子列表。
+filter_by_backend() {
+    local wanted="$1" op
+    [ "$wanted" = all ] && return 0
+    local -a kept=()
+    for op in "${OPERATORS[@]}"; do
+        if [ "$(op_backend "$op")" = "$wanted" ]; then
+            kept+=("$op")
+        fi
+    done
+    echo "[INFO] Backend ${wanted}: ${#kept[@]} of ${#OPERATORS[@]} operator(s)"
+    OPERATORS=("${kept[@]}")
+}
+
+# 算子名 → 算子路径映射
+resolve_operator() {
+    local input="$1" op
+    if [ -f "$input/CMakeLists.txt" ] || [ -f "$input/op.yaml" ]; then
+        echo "$input"
+        return 0
+    fi
+    for op in "${ALL_OPERATORS[@]}"; do
+        if [ "${op##*/}" = "${input##*/}" ]; then
+            echo "$op"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 判断算子是否匹配前缀列表（支持逗号分隔，如 "pid,time_series,graph"）。
+matches_prefix() {
+    local path="$1" prefixes="$2" prefix
+    local IFS=','
+    [ -n "$prefixes" ] || return 0
+    for prefix in $prefixes; do
+        prefix="${prefix%/}"
+        [ -n "$prefix" ] || return 0
+        case "$path" in
+            "$prefix"|"$prefix"/*) return 0 ;;
+        esac
+    done
+    return 1
+}
+
+# 判断算子的测试是否真的引用 reference/（用于 --reference=auto）。
+op_tests_use_reference() {
+    local op="$1"
+    [ -d "$op/tests" ] || return 1
+    grep -RqsE \
+        '(from|import)[[:space:]]+reference([[:space:].]|$)|reference/reference\.py|["'"'"'/]reference["'"'"'/]' \
+        "$op/tests" --include='*.py'
+}
+
+# 按分片筛选算子列表：index%N == i-1。workflow 只决定并发度，不决定族。
+apply_shard() {
+    [ "${SHARD_TOTAL:-1}" -gt 1 ] || return 0
+    local -a selected=()
+    local index=0 op
+    for op in "${OPERATORS[@]}"; do
+        if [ $((index % SHARD_TOTAL)) -eq $((SHARD_INDEX - 1)) ]; then
+            selected+=("$op")
+        fi
+        index=$((index + 1))
+    done
+    echo "[INFO] Shard ${SHARD_INDEX}/${SHARD_TOTAL}: ${#selected[@]} of ${#OPERATORS[@]} operator(s)"
+    OPERATORS=("${selected[@]}")
+}
+
+# 判断目录是否为 DirectMatchDir（忽略调用方传入的尾部斜杠）
+is_direct_match_dir() {
+    local candidate="${1%/}" dir
+    for dir in "${DIRECT_MATCH_DIRS[@]}"; do
+        if [ "$candidate" = "${dir%/}" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 共享目录是否有变更：DirectMatchDir 只认直接文件，普通目录按前缀。
+common_dirs_changed() {
+    local filelist="$1" common_dirs_str="$2" cdir prefix gpath
+    [ -f "$filelist" ] || return 1
+
+    # 顶层 CMake / cmake/ 变化影响所有算子，不能因为不在算子路径下就跳过。
+    for gpath in "${GLOBAL_BUILD_PATHS[@]}"; do
+        if [ -d "${REPO_ROOT}/${gpath}" ]; then
+            grep -q "^${gpath}/" "$filelist" 2>/dev/null && return 0
+        else
+            grep -qxF "$gpath" "$filelist" 2>/dev/null && return 0
+        fi
+    done
+
+    [ -n "$common_dirs_str" ] || return 1
+    for cdir in $common_dirs_str; do
+        prefix="${cdir%/}"
+        if is_direct_match_dir "$prefix"; then
+            grep -qE "^${prefix}/[^/]+$" "$filelist" 2>/dev/null && return 0
+        else
+            grep -q "^${prefix}/" "$filelist" 2>/dev/null && return 0
+        fi
+    done
+    return 1
+}
+
+# 从文件列表提取受影响算子（去重）；共享目录有变更时输出 ALL 标记。
+resolve_operators_from_filelist() {
+    local filelist="$1" common_dirs_str="$2" line op seen=" "
+    [ -f "$filelist" ] || die "file list not found: $filelist"
+
+    if common_dirs_changed "$filelist" "$common_dirs_str"; then
+        echo "ALL"
+        return 0
+    fi
+
+    # || [ -n "$line" ] 兜底无换行结尾的最后一行
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="${line%$'\r'}"          # 兼容 CRLF
+        [ -z "$line" ] && continue
+        case "$line" in \#*) continue ;; esac
+        for op in "${ALL_OPERATORS[@]}"; do
+            if [[ "$line" == "$op/"* ]]; then
+                case "$seen" in
+                    *" $op "*) ;;
+                    *) seen="${seen}${op} "; echo "$op" ;;
+                esac
+                break
+            fi
+        done
+    done < "$filelist"
+}
+
+# 纯文档变更判定：filelist 中非空行全部以 .md 结尾。
+# tests/ 变更不在快路径内——用例改动必须重编后再跑 ctest。
+should_skip_docs_only() {
+    local filelist="$1" non_doc_count
+    non_doc_count=$(tr -d '\r' < "$filelist" 2>/dev/null | grep -vE '^[[:space:]]*$' | grep -cvE '\.md$' || true)
+    non_doc_count=${non_doc_count:-0}
+    [ "$non_doc_count" -eq 0 ]
+}
