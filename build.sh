@@ -18,7 +18,7 @@ set -eo pipefail
 # ---------------------------------------------------------------------------
 for _arg in "$@"; do
     case "$_arg" in
-        --list|--list-ops|--help|-h|--python|--python-tests|--python-tests=*|--reference-test)
+        --list|--list-ops|--help|-h|--python|--python-tests|--python-tests=*)
             REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
             exec bash "$REPO_ROOT/scripts/build_main.sh" "$@" ;;
     esac
