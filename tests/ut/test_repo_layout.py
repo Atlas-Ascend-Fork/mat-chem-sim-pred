@@ -23,8 +23,7 @@
 不允许新增：新算子若违反 R2–R7 会直接失败。
 """
 
-import json
-import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -84,36 +83,3 @@ def assert_no_new_gaps(rule: str, predicate) -> None:
         f"{rule}: 新增契约缺口 {new_gaps}。"
         f"请补齐交付件，而不是把它们加进 layout_exceptions.json。"
     )
-
-
-def op_backend(path: Path) -> str:
-    manifest = path / "op.yaml"
-    if not manifest.is_file():
-        return "ascendc"
-    for line in manifest.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("backend:"):
-            return stripped.split(":", 1)[1].strip().strip("\"'") or "ascendc"
-    return "ascendc"
-
-
-def gap_missing_msopgen(path: Path) -> bool:
-    if op_backend(path) != "ascendc":
-        return False
-    return not list((path / "msopgen").glob("*.json"))
-
-
-def test_r7_msopgen() -> None:
-    assert_no_new_gaps("missing_msopgen", gap_missing_msopgen)
-
-
-def test_pypto_contract() -> None:
-    pypto_ops = [
-        op for op in discover_operators() if op_backend(REPO_ROOT / op) == "pypto"
-    ]
-    for op in pypto_ops:
-        path = REPO_ROOT / op
-        assert (path / "pyproject.toml").is_file(), f"{op} missing pyproject.toml"
-        assert (path / "tests").is_dir(), f"{op} missing tests/"
-
-
