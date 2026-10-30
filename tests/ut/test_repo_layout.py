@@ -25,6 +25,7 @@
 
 import json
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -34,6 +35,9 @@ VARIABLES = REPO_ROOT / "cmake" / "variables.cmake"
 EXCEPTIONS = Path(__file__).with_name("layout_exceptions.json")
 
 SNAKE_CASE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
+BUILD_ARTIFACTS = re.compile(
+    r"(^|/)(build|build_out)/|(__pycache__|\.pytest_cache|\.ruff_cache)/"
+)
 
 
 def read_cmake_list(name: str) -> list[str]:
@@ -127,3 +131,74 @@ def test_r5_reference() -> None:
     assert_no_new_gaps("tests_without_reference", gap_tests_without_reference)
 
 
+def op_backend(path: Path) -> str:
+    manifest = path / "op.yaml"
+    if not manifest.is_file():
+        return "ascendc"
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("backend:"):
+            return stripped.split(":", 1)[1].strip().strip("\"'") or "ascendc"
+    return "ascendc"
+
+
+def gap_missing_msopgen(path: Path) -> bool:
+    if op_backend(path) != "ascendc":
+        return False
+    return not list((path / "msopgen").glob("*.json"))
+
+
+def test_r7_msopgen() -> None:
+    assert_no_new_gaps("missing_msopgen", gap_missing_msopgen)
+
+
+def test_pypto_contract() -> None:
+    pypto_ops = [
+        op for op in discover_operators() if op_backend(REPO_ROOT / op) == "pypto"
+    ]
+    for op in pypto_ops:
+        path = REPO_ROOT / op
+        assert (path / "pyproject.toml").is_file(), f"{op} missing pyproject.toml"
+        assert (path / "tests").is_dir(), f"{op} missing tests/"
+
+
+def test_r6_no_tracked_build_artifacts() -> None:
+    try:
+        tracked = subprocess.run(
+            ["git", "ls-files"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.splitlines()
+    except (OSError, subprocess.CalledProcessError):
+        pytest.skip("git not available")
+    offenders = [path for path in tracked if BUILD_ARTIFACTS.search(path)]
+    assert not offenders, f"build artifacts are tracked: {offenders[:10]}"
+
+
+def test_skipped_operators_are_not_discovered() -> None:
+    skipped = set(read_cmake_list("MATCHEM_SKIP_OPERATORS"))
+    assert not (skipped & set(discover_operators())), (
+        "MATCHEM_SKIP_OPERATORS leaked into discovery"
+    )
+
+
+def test_python_operators_exist() -> None:
+    missing = []
+    for op in read_cmake_list("MATCHEM_PYTHON_OPERATORS"):
+        if not (REPO_ROOT / op).is_dir():
+            missing.append(op)
+    assert not missing, f"MATCHEM_PYTHON_OPERATORS entries not found: {missing}"
+
+
+def test_docs_op_list_covers_every_operator() -> None:
+    op_list = REPO_ROOT / "docs" / "zh" / "op_list.md"
+    if not op_list.is_file():
+        pytest.skip("docs/zh/op_list.md not present")
+    text = op_list.read_text(encoding="utf-8")
+    missing = []
+    for op in discover_operators():
+        if Path(op).name not in text:
+            missing.append(op)
+    assert not missing, f"operators missing from docs/zh/op_list.md: {missing}"
