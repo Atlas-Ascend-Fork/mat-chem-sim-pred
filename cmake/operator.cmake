@@ -1,4 +1,3 @@
-# ----------------------------------------------------------------------------
 # Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
@@ -12,7 +11,8 @@
 # 形态对齐社区：
 #   cann/ops-nn   activation/<op>/CMakeLists.txt → add_modules_sources(...)
 #   cann/ops-math conversion/<op>/CMakeLists.txt → add_all_modules_sources(...)
-# 共同点：算子 CMakeLists 不 include 仓外路径、不 project()、不探测 CANN，只调用父级提供的宏。
+# 共同点：算子 CMakeLists 不 include 仓外路径、不 project()、不探测 CANN，
+# 只调用父级提供的宏。
 # 这样算子目录自包含，也能过 CANN CodeCheck 的"算子目录不得引用外部路径"约束。
 #
 # 用法（算子目录 CMakeLists.txt 全文）：

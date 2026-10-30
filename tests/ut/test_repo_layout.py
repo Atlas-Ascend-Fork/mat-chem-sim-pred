@@ -1,4 +1,3 @@
-# ----------------------------------------------------------------------------
 # Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
@@ -44,7 +43,7 @@ BUILD_ARTIFACTS = re.compile(
 def read_cmake_list(name: str) -> list[str]:
     """读取 variables.cmake 中 `set(NAME "a" "b")` 形式的字符串列表。"""
     text = VARIABLES.read_text(encoding="utf-8")
-    match = re.search(rf"set\(\s*{name}\s*(.*?)\n\)", text, re.S)
+    match = re.search(rf"set\(\s*{name}\s*(.*?)\n\)", text, re.DOTALL)
     assert match, f"{name} not found in {VARIABLES}"
     return re.findall(r'"([^"]*)"', match.group(1))
 
@@ -80,13 +79,34 @@ def assert_no_new_gaps(
     operators: list[str], exceptions: dict[str, list[str]], rule: str, predicate
 ) -> None:
     """actual 必须是 baseline 的子集：允许偿还欠账，不允许新增。"""
-    actual = {op for op in operators if predicate(REPO_ROOT / op)}
+    actual = set()
+    for op in operators:
+        if predicate(REPO_ROOT / op):
+            actual.add(op)
     baseline = set(exceptions.get(rule, []))
     new_gaps = sorted(actual - baseline)
     assert not new_gaps, (
         f"{rule}: 新增契约缺口 {new_gaps}。"
         f"请补齐交付件，而不是把它们加进 layout_exceptions.json。"
     )
+
+
+def gap_non_snake_case(path: Path) -> bool:
+    return not SNAKE_CASE.match(path.name)
+
+
+def gap_missing_readme(path: Path) -> bool:
+    return not (path / "README.md").is_file()
+
+
+def gap_missing_tests(path: Path) -> bool:
+    return not (path / "tests").is_dir()
+
+
+def gap_tests_without_reference(path: Path) -> bool:
+    if not (path / "tests").is_dir():
+        return False
+    return not (path / "reference").is_dir()
 
 
 def test_r1_at_least_one_operator(operators: list[str]) -> None:
@@ -100,38 +120,20 @@ def test_r1_operator_names_are_unique(operators: list[str]) -> None:
 
 
 def test_r2_snake_case(operators: list[str], exceptions: dict[str, list[str]]) -> None:
-    assert_no_new_gaps(
-        operators,
-        exceptions,
-        "non_snake_case",
-        lambda path: not SNAKE_CASE.match(path.name),
-    )
+    assert_no_new_gaps(operators, exceptions, "non_snake_case", gap_non_snake_case)
 
 
 def test_r3_readme(operators: list[str], exceptions: dict[str, list[str]]) -> None:
-    assert_no_new_gaps(
-        operators,
-        exceptions,
-        "missing_readme",
-        lambda path: not (path / "README.md").is_file(),
-    )
+    assert_no_new_gaps(operators, exceptions, "missing_readme", gap_missing_readme)
 
 
 def test_r4_tests(operators: list[str], exceptions: dict[str, list[str]]) -> None:
-    assert_no_new_gaps(
-        operators,
-        exceptions,
-        "missing_tests",
-        lambda path: not (path / "tests").is_dir(),
-    )
+    assert_no_new_gaps(operators, exceptions, "missing_tests", gap_missing_tests)
 
 
 def test_r5_reference(operators: list[str], exceptions: dict[str, list[str]]) -> None:
     assert_no_new_gaps(
-        operators,
-        exceptions,
-        "tests_without_reference",
-        lambda path: (path / "tests").is_dir() and not (path / "reference").is_dir(),
+        operators, exceptions, "tests_without_reference", gap_tests_without_reference
     )
 
 
@@ -146,14 +148,14 @@ def op_backend(path: Path) -> str:
     return "ascendc"
 
 
+def gap_missing_msopgen(path: Path) -> bool:
+    if op_backend(path) != "ascendc":
+        return False
+    return not list((path / "msopgen").glob("*.json"))
+
+
 def test_r7_msopgen(operators: list[str], exceptions: dict[str, list[str]]) -> None:
-    assert_no_new_gaps(
-        operators,
-        exceptions,
-        "missing_msopgen",
-        lambda path: op_backend(path) == "ascendc"
-        and not list((path / "msopgen").glob("*.json")),
-    )
+    assert_no_new_gaps(operators, exceptions, "missing_msopgen", gap_missing_msopgen)
 
 
 def test_pypto_contract(operators: list[str]) -> None:
@@ -187,11 +189,10 @@ def test_skipped_operators_are_not_discovered(operators: list[str]) -> None:
 
 
 def test_python_operators_exist() -> None:
-    missing = [
-        op
-        for op in read_cmake_list("MATCHEM_PYTHON_OPERATORS")
-        if not (REPO_ROOT / op).is_dir()
-    ]
+    missing = []
+    for op in read_cmake_list("MATCHEM_PYTHON_OPERATORS"):
+        if not (REPO_ROOT / op).is_dir():
+            missing.append(op)
     assert not missing, f"MATCHEM_PYTHON_OPERATORS entries not found: {missing}"
 
 
@@ -200,5 +201,8 @@ def test_docs_op_list_covers_every_operator(operators: list[str]) -> None:
     if not op_list.is_file():
         pytest.skip("docs/zh/op_list.md not present")
     text = op_list.read_text(encoding="utf-8")
-    missing = [op for op in operators if Path(op).name not in text]
+    missing = []
+    for op in operators:
+        if Path(op).name not in text:
+            missing.append(op)
     assert not missing, f"operators missing from docs/zh/op_list.md: {missing}"

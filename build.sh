@@ -243,7 +243,8 @@ fi
 if [ "$RUN_TEST" = true ] && [ "$UT_MODE" = auto ] && [ "$has_ascendc" = true ] && [ "$HAS_GTEST" != true ]; then
     for op in "${OPERATORS[@]}"; do
         if [ "$(op_backend "$op")" = ascendc ] && [ -d "$op/tests" ]; then
-            log_warn "GTest not found; Ascend C unit tests are skipped (-DBUILD_TESTS=OFF). Use --ut=required to fail instead."
+            log_warn "GTest not found; Ascend C unit tests are skipped (-DBUILD_TESTS=OFF)."
+            log_warn "Use --ut=required to fail instead."
             break
         fi
     done

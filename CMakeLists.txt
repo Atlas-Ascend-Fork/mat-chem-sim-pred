@@ -1,4 +1,3 @@
-# ----------------------------------------------------------------------------
 # Copyright (c) 2026 Huawei Technologies Co., Ltd.
 # This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
@@ -43,7 +42,8 @@ if(MATCHEM_BUILD_OPS)
     include(cmake/op_prelude.cmake)
     if(NOT MATCHEM_CANN_AVAILABLE)
         list(LENGTH MATCHEM_ALL_OPS _matchem_op_count)
-        message(STATUS "[matchem] 未检测到 CANN：跳过 ${_matchem_op_count} 个算子的目标生成（仅完成配置）")
+        message(STATUS
+            "[matchem] 未检测到 CANN：跳过 ${_matchem_op_count} 个算子的目标生成（仅完成配置）")
     else()
         include(cmake/operator.cmake)
         if(MATCHEM_OP)
