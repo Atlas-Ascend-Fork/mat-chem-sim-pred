@@ -70,14 +70,5 @@ PY
         fi
     done
 
-    if [ ${#missing_ref[@]} -gt 0 ]; then
-        echo "----------------------------------------------------------------"
-        echo "[REF-MISSING] ${#missing_ref[@]} operator(s) missing reference/:"
-        printf '  %s\n' "${missing_ref[@]}"
-    fi
-
-    if [ "$ran_test" = false ] && [ ${#missing_ref[@]} -eq 0 ]; then
-        echo "No operator files changed; reference tests are skipped."
-    fi
-    return $overall_rc
+    finish_reference_run "$overall_rc" "$ran_test" "${missing_ref[@]}"
 }
