@@ -18,20 +18,15 @@ set -eo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$REPO_ROOT"
 
-# shellcheck source=scripts/lib/common.sh
-source scripts/lib/common.sh
-# shellcheck source=scripts/lib/config.sh
-source scripts/lib/config.sh
-# shellcheck source=scripts/lib/ops.sh
-source scripts/lib/ops.sh
-# shellcheck source=scripts/build_options.sh
-source scripts/build_options.sh
-# shellcheck source=scripts/build_single.sh
-source scripts/build_single.sh
-# shellcheck source=scripts/build_python.sh
-source scripts/build_python.sh
-# shellcheck source=scripts/build_reference.sh
-source scripts/build_reference.sh
+# 用基于脚本位置的绝对路径 source，避免依赖调用者的当前目录（也避开
+# "相对路径引入可被劫持" 这类安全规则）。
+for _lib in \
+    lib/common.sh lib/config.sh lib/ops.sh \
+    build_options.sh build_single.sh build_python.sh build_reference.sh; do
+    # shellcheck source=/dev/null
+    source "$REPO_ROOT/scripts/$_lib"
+done
+unset _lib
 
 export ASCEND_TOOLKIT_HOME="${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}"
 export PIP_INDEX_URL="${PIP_INDEX_URL:-https://repo.huaweicloud.com/repository/pypi/simple}"
