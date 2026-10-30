@@ -83,6 +83,13 @@ main() {
         return $?
     fi
 
+    if [ "$REFERENCE_TEST" = true ]; then
+        [ -n "$COMMON_DIRS" ] || COMMON_DIRS="${DEFAULT_COMMON_DIRS[*]:-}"
+        # 位置参数是前缀过滤（如 prediction/ProcessControl/），与旧实现一致
+        run_reference_tests "$FILELIST" "${OPERATORS[0]:-}" "$COMMON_DIRS"
+        return $?
+    fi
+
     echo "build_main.sh: 该子命令尚未迁移到新入口: $*" >&2
     return 2
 }
