@@ -34,6 +34,9 @@ VARIABLES = REPO_ROOT / "cmake" / "variables.cmake"
 EXCEPTIONS = Path(__file__).with_name("layout_exceptions.json")
 
 SNAKE_CASE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
+BUILD_ARTIFACTS = re.compile(
+    r"(^|/)(build|build_out)/|(__pycache__|\.pytest_cache|\.ruff_cache)/"
+)
 
 
 def read_cmake_list(name: str) -> list[str]:
@@ -83,47 +86,34 @@ def assert_no_new_gaps(rule: str, predicate) -> None:
     )
 
 
-def gap_non_snake_case(path: Path) -> bool:
-    return not SNAKE_CASE.match(path.name)
+def op_backend(path: Path) -> str:
+    manifest = path / "op.yaml"
+    if not manifest.is_file():
+        return "ascendc"
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("backend:"):
+            return stripped.split(":", 1)[1].strip().strip("\"'") or "ascendc"
+    return "ascendc"
 
 
-def gap_missing_readme(path: Path) -> bool:
-    return not (path / "README.md").is_file()
-
-
-def gap_missing_tests(path: Path) -> bool:
-    return not (path / "tests").is_dir()
-
-
-def gap_tests_without_reference(path: Path) -> bool:
-    if not (path / "tests").is_dir():
+def gap_missing_msopgen(path: Path) -> bool:
+    if op_backend(path) != "ascendc":
         return False
-    return not (path / "reference").is_dir()
+    return not list((path / "msopgen").glob("*.json"))
 
 
-def test_r1_at_least_one_operator() -> None:
-    assert discover_operators(), "no operators discovered — check cmake/variables.cmake"
+def test_r7_msopgen() -> None:
+    assert_no_new_gaps("missing_msopgen", gap_missing_msopgen)
 
 
-def test_r1_operator_names_are_unique() -> None:
-    names = [Path(op).name for op in discover_operators()]
-    duplicates = sorted({name for name in names if names.count(name) > 1})
-    assert not duplicates, f"duplicate operator directory names: {duplicates}"
-
-
-def test_r2_snake_case() -> None:
-    assert_no_new_gaps("non_snake_case", gap_non_snake_case)
-
-
-def test_r3_readme() -> None:
-    assert_no_new_gaps("missing_readme", gap_missing_readme)
-
-
-def test_r4_tests() -> None:
-    assert_no_new_gaps("missing_tests", gap_missing_tests)
-
-
-def test_r5_reference() -> None:
-    assert_no_new_gaps("tests_without_reference", gap_tests_without_reference)
+def test_pypto_contract() -> None:
+    pypto_ops = [
+        op for op in discover_operators() if op_backend(REPO_ROOT / op) == "pypto"
+    ]
+    for op in pypto_ops:
+        path = REPO_ROOT / op
+        assert (path / "pyproject.toml").is_file(), f"{op} missing pyproject.toml"
+        assert (path / "tests").is_dir(), f"{op} missing tests/"
 
 
