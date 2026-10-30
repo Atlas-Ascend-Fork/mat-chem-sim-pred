@@ -39,9 +39,10 @@ usage() {
   --list [--backend=ascendc|pypto|all]   列出参与构建的算子
   --python <operator>                    Python 算子 pytest
   --python-tests[=cpu|npu|all]           跑受影响的 Python 与 reference 测试
+  --reference-test [前缀]                跑 reference 测试（默认要求 reference 存在）
   --help                                 显示本帮助
 
-其余选项（--build/--test/--reference-test/--package 等）仍由 build.sh 的旧实现处理。
+其余选项（--build/--test/--package 等）仍由 build.sh 的旧实现处理。
 EOF
 }
 
@@ -80,6 +81,13 @@ main() {
 
     if [ "$PYTHON_TESTS" = true ]; then
         run_python_tests_all "$FILELIST" "$PYTHON_TESTS_DEVICE"
+        return $?
+    fi
+
+    if [ "$REFERENCE_TEST" = true ]; then
+        [ -n "$COMMON_DIRS" ] || COMMON_DIRS="${DEFAULT_COMMON_DIRS[*]:-}"
+        # 位置参数可作前缀过滤（如 prediction/ProcessControl/）
+        run_reference_tests "$FILELIST" "${OPERATORS[0]:-}" "$COMMON_DIRS"
         return $?
     fi
 

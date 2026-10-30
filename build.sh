@@ -18,7 +18,7 @@ set -eo pipefail
 # ---------------------------------------------------------------------------
 for _arg in "$@"; do
     case "$_arg" in
-        --list|--list-ops|--help|-h|--python|--python-tests|--python-tests=*)
+        --list|--list-ops|--help|-h|--python|--python-tests|--python-tests=*|--reference-test)
             REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
             exec bash "$REPO_ROOT/scripts/build_main.sh" "$@" ;;
     esac
@@ -313,89 +313,6 @@ build_single() {
 }
 
 # Python 算子测试：自动检测 test_ops.py / test_gpr.py / tests/
-run_reference_tests() {
-    local filelist="$1"
-    local filter_prefix="$2"  # 如 "prediction/ProcessControl/" 只测该前缀下的算子
-    local common_dirs_str="$3"  # 共享目录，有变更时全量测试该批算子
-    local overall_rc=0
-    local ran_test=false
-    local common_changed=false
-    local -a missing_ref=()
-
-    # 检查 COMMON_DIRS 是否有变更
-    if [ -n "$common_dirs_str" ] && [ -n "$filelist" ] && [ -f "$filelist" ]; then
-        for cdir in $common_dirs_str; do
-            if is_direct_match_dir "$cdir"; then
-                if grep -qE "^${cdir}[^/]+$" "$filelist" 2>/dev/null; then
-                    common_changed=true
-                    break
-                fi
-            else
-                if grep -q "^${cdir}" "$filelist" 2>/dev/null; then
-                    common_changed=true
-                    break
-                fi
-            fi
-        done
-    fi
-
-    # source 一个不存在的文件在非交互 shell（含 bash 3.2）里是致命错误，`|| true` 也拦不住：
-    # ASCEND_TOOLKIT_HOME 未设置时会展开成 /set_env.sh，脚本会静默 exit 1 且不打印任何输出。
-    # 因此必须先用 -f 守卫，保证缺 CANN 环境时只是跳过，而不是让门禁"没有结论"。
-    if [ -n "${ASCEND_TOOLKIT_HOME:-}" ] && [ -f "${ASCEND_TOOLKIT_HOME}/set_env.sh" ]; then
-        source "${ASCEND_TOOLKIT_HOME}/set_env.sh" 2>/dev/null || true
-    fi
-    PYTHON_BIN="${PYTHON_BIN:-python3}"
-    "$PYTHON_BIN" -m pip install pytest numpy 2>/dev/null || true
-    "$PYTHON_BIN" - <<'PY'
-import importlib.util, subprocess, sys
-required = ["numpy", "pytest", "torch"]
-missing = [name for name in required if importlib.util.find_spec(name) is None]
-if missing:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
-PY
-
-    for op in "${ALL_OPERATORS[@]}"; do
-        # 前缀过滤
-        if [ -n "$filter_prefix" ] && [[ "$op" != "$filter_prefix"* ]]; then
-            continue
-        fi
-        # 必须有 tests/ 目录
-        [ -d "$op/tests" ] || continue
-        # 共享目录变更时已确定全量，否则按 filelist 过滤
-        if [ "$common_changed" = false ] && [ -n "$filelist" ] && [ -f "$filelist" ]; then
-            if ! grep -q "^${op}/" "$filelist" 2>/dev/null; then
-                continue
-            fi
-        fi
-        # 交付契约校验：有 tests/ 的算子必须提供 reference/reference.py（唯一正确性基准）。
-        # 缺失时先聚合报告，避免逐个算子抛裸的 FileNotFoundError，也避免"空跑假绿"。
-        if [ ! -f "$op/reference/reference.py" ] && [ ! -f "$op/reference/__init__.py" ]; then
-            echo "[REF-MISSING] $op — tests/ 存在但缺少 reference/reference.py"
-            missing_ref+=("$op")
-            overall_rc=1
-            continue
-        fi
-        ran_test=true
-        echo "=== Reference test: $op ==="
-        if ! ( cd "$op" && "$PYTHON_BIN" -X faulthandler -m pytest tests -v --tb=short ); then
-            overall_rc=1
-        fi
-    done
-
-    if [ ${#missing_ref[@]} -gt 0 ]; then
-        echo "----------------------------------------------------------------"
-        echo "[REF-MISSING] ${#missing_ref[@]} operator(s) missing reference/:"
-        printf '  %s\n' "${missing_ref[@]}"
-    fi
-
-    if [ "$ran_test" = false ] && [ ${#missing_ref[@]} -eq 0 ]; then
-        echo "No operator files changed; reference tests are skipped."
-    fi
-    return $overall_rc
-}
-
-# 清理单个算子的构建产物
 clean_single() {
     local op="$1"
     if [ -d "$op/build" ]; then
@@ -453,14 +370,6 @@ if [ "$LIST_ONLY" = true ]; then
         printf '  %s\n' "${SKIP_OPERATORS[@]}"
     fi
     exit 0
-fi
-
-# 参考测试模式
-if [ "$REFERENCE_TEST" = true ]; then
-    # 位置参数可作前缀过滤（如 prediction/ProcessControl/）
-    FILTER_PREFIX="${OPERATORS[0]:-}"
-    run_reference_tests "$FILELIST" "$FILTER_PREFIX" "$COMMON_DIRS"
-    exit $?
 fi
 
 # 处理 -f 模式：从文件列表增量编译
