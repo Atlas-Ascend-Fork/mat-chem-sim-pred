@@ -9,61 +9,82 @@
 # ----------------------------------------------------------------------------
 # 统一入口的新实现（迁移期由 build.sh 分发进来）。
 #
-# 当前只接管只读子命令（--list / --help），它们不产生编译副作用，便于先验证配置层；
-# 编译、测试、打包等子命令仍留在 build.sh 的旧实现里，随后逐个搬过来并把旧代码删掉。
+# 已接管：--list / --help / --python <op> / --python-tests[=cpu|npu|all]
+# 未接管：--build / --test / --reference-test / --package 等仍走 build.sh 的旧实现，
+# 随后逐个搬迁，每搬一个就删掉旧代码对应的一段。
 # 配置的唯一来源仍是 cmake/variables.cmake（经 scripts/lib/config.sh 解析）。
 
 set -eo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export REPO_ROOT
+cd "$REPO_ROOT"
 
-for _lib in lib/common.sh lib/config.sh lib/ops.sh; do
+for _lib in \
+    lib/common.sh lib/config.sh lib/ops.sh \
+    build_options.sh build_single.sh build_python.sh build_reference.sh; do
     # shellcheck source=/dev/null
     source "$REPO_ROOT/scripts/$_lib"
 done
 unset _lib
 
+export ASCEND_TOOLKIT_HOME="${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}"
+export PIP_INDEX_URL="${PIP_INDEX_URL:-https://repo.huaweicloud.com/repository/pypi/simple}"
+
 usage() {
     cat <<'EOF'
 用法: bash build.sh [选项]
 
-只读命令：
+已由新入口接管：
   --list [--backend=ascendc|pypto|all]   列出参与构建的算子
-  --help                                  显示本帮助
+  --python <operator>                    Python 算子 pytest
+  --python-tests[=cpu|npu|all]           跑受影响的 Python 与 reference 测试
+  --help                                 显示本帮助
 
-其余命令（--build / --test / --python-tests / --package 等）当前仍由 build.sh
-的旧实现处理，迁移完成后统一由本脚本接管。
+其余选项（--build/--test/--reference-test/--package 等）仍由 build.sh 的旧实现处理。
 EOF
 }
 
-parse_backend() {
-    local backend="all" arg
-    for arg in "$@"; do
-        case "$arg" in
-            --backend=*) backend="${arg#--backend=}" ;;
-        esac
-    done
-    echo "$backend"
-}
-
 list_operators() {
-    local backend
-    backend="$(parse_backend "$@")"
-    load_repo_config
-    discover_operators
-    OPERATORS=("${ALL_OPERATORS[@]:-}")
-    [ "$backend" = "all" ] || filter_by_backend "$backend" >/dev/null
-    echo "Discovered ${#OPERATORS[@]} operators (backend=${backend}):"
-    printf '  %s\n' "${OPERATORS[@]}"
+    echo "Discovered ${#ALL_OPERATORS[@]} CMake operators:"
+    printf '  %s\n' "${ALL_OPERATORS[@]}"
+    echo ""
+    echo "Python operators (use --python):"
+    printf '  %s\n' "${PYTHON_OPERATORS[@]:-}"
+    if [ ${#SKIP_OPERATORS[@]} -gt 0 ]; then
+        echo ""
+        echo "Excluded from build (WIP):"
+        printf '  %s\n' "${SKIP_OPERATORS[@]}"
+    fi
 }
 
 main() {
-    case "${1:-}" in
-        --list|--list-ops) list_operators "$@" ;;
-        --help|-h)         usage ;;
-        *)                 echo "build_main.sh: 未接管的参数: $*" >&2; exit 2 ;;
-    esac
+    if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+        usage
+        return 0
+    fi
+
+    load_repo_config
+    discover_operators
+    parse_args "$@"
+
+    if [ "$LIST_ONLY" = true ]; then
+        list_operators
+        return 0
+    fi
+
+    if [ -n "$PYTHON_OP" ]; then
+        run_python_test "$PYTHON_OP" "$FILELIST"
+        return $?
+    fi
+
+    if [ "$PYTHON_TESTS" = true ]; then
+        run_python_tests_all "$FILELIST" "$PYTHON_TESTS_DEVICE"
+        return $?
+    fi
+
+    echo "build_main.sh: 该子命令尚未迁移到新入口: $*" >&2
+    return 2
 }
 
 main "$@"
