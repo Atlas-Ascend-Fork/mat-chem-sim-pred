@@ -64,3 +64,19 @@ gtest_available() {
     fi
     return 1
 }
+
+# 汇总 reference 契约检查结果并返回退出码。
+# 与 build.sh 旧实现里的收尾逻辑等价，抽出来避免两处 15 行同构（CodeCheck 重复代码）。
+finish_reference_run() {
+    local rc="$1" ran="$2"
+    shift 2
+    if [ "$#" -gt 0 ]; then
+        echo "----------------------------------------------------------------"
+        echo "[REF-MISSING] $# operator(s) missing reference/:"
+        printf '  %s\n' "$@"
+    fi
+    if [ "$ran" = false ] && [ "$#" -eq 0 ]; then
+        echo "No operator files changed; reference tests are skipped."
+    fi
+    return "$rc"
+}

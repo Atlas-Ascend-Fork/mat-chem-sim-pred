@@ -19,13 +19,27 @@ reference_required_for_op() {
     esac
 }
 
+# reference 测试的"共享目录是否有变更"判定。
+# 只认调用方传入的 --common-dirs：编译侧的 GLOBAL_BUILD_PATHS（顶层 CMakeLists / cmake/）
+# 语义不适用于 reference 测试——否则任何触及 cmake/ 的 PR 都会全量跑一遍，
+# 把上游缺 reference 的算子全暴露成失败（与旧实现行为不一致）。
+reference_common_changed() {
+    local filelist="$1" dirs="$2" cdir
+    [ -f "$filelist" ] || return 1
+    [ -n "$dirs" ] || return 1
+    for cdir in $dirs; do
+        grep -q "^${cdir%/}/" "$filelist" 2>/dev/null && return 0
+    done
+    return 1
+}
+
 run_reference_tests() {
     local filelist="$1" filter_prefix="$2" common_dirs_str="$3"
     local overall_rc=0 ran_test=false python_bin op
     local -a missing_ref=()
 
     local common_changed=false
-    if common_dirs_changed "$filelist" "$common_dirs_str"; then
+    if reference_common_changed "$filelist" "$common_dirs_str"; then
         common_changed=true
     fi
 
@@ -70,14 +84,5 @@ PY
         fi
     done
 
-    if [ ${#missing_ref[@]} -gt 0 ]; then
-        echo "----------------------------------------------------------------"
-        echo "[REF-MISSING] ${#missing_ref[@]} operator(s) missing reference/:"
-        printf '  %s\n' "${missing_ref[@]}"
-    fi
-
-    if [ "$ran_test" = false ] && [ ${#missing_ref[@]} -eq 0 ]; then
-        echo "No operator files changed; reference tests are skipped."
-    fi
-    return $overall_rc
+    finish_reference_run "$overall_rc" "$ran_test" "${missing_ref[@]}"
 }

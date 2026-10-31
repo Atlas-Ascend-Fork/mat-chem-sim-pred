@@ -12,6 +12,19 @@
 # ============================================================================
 set -eo pipefail
 
+# ---------------------------------------------------------------------------
+# 新入口（迁移期双轨）：只读子命令转交 scripts/build_main.sh，
+# 其余参数仍走本文件原有逻辑。子命令逐个搬迁，搬完再删旧实现。
+# ---------------------------------------------------------------------------
+for _arg in "$@"; do
+    case "$_arg" in
+        --list|--list-ops|--help|-h|--python|--python-tests|--python-tests=*|--reference-test)
+            REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+            exec bash "$REPO_ROOT/scripts/build_main.sh" "$@" ;;
+    esac
+done
+unset _arg
+
 # 默认参数
 SOC_VERSION="${SOC_VERSION:-Ascend910B1}"
 BUILD_TYPE="Release"
@@ -300,59 +313,6 @@ build_single() {
 }
 
 # Python 算子测试：自动检测 test_ops.py / test_gpr.py / tests/
-run_python_test() {
-    local op="$1"
-    local filelist="$2"
-
-    # 增量检测：filelist 中该算子无变更则跳过
-    if [ -n "$filelist" ] && [ -f "$filelist" ]; then
-        if ! grep -q "^${op}/" "$filelist" 2>/dev/null; then
-            echo "[SKIP] No ${op} files changed; Python tests are skipped."
-            return 0
-        fi
-    fi
-
-    echo "[PYTEST] $op"
-    # source 一个不存在的文件在非交互 shell（含 bash 3.2）里是致命错误，`|| true` 也拦不住：
-    # ASCEND_TOOLKIT_HOME 未设置时会展开成 /set_env.sh，脚本会静默 exit 1 且不打印任何输出。
-    # 因此必须先用 -f 守卫，保证缺 CANN 环境时只是跳过，而不是让门禁"没有结论"。
-    if [ -n "${ASCEND_TOOLKIT_HOME:-}" ] && [ -f "${ASCEND_TOOLKIT_HOME}/set_env.sh" ]; then
-        source "${ASCEND_TOOLKIT_HOME}/set_env.sh" 2>/dev/null || true
-    fi
-    PYTHON_BIN="${PYTHON_BIN:-python3}"
-    "$PYTHON_BIN" -m pip install pytest numpy 2>/dev/null || true
-    "$PYTHON_BIN" - <<'PY'
-import importlib.util, subprocess, sys
-required = ["numpy", "pytest", "torch"]
-missing = [name for name in required if importlib.util.find_spec(name) is None]
-if missing:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
-PY
-
-    # DAO 等 Python 算子依赖 pypto（tile 框架）。仅当算子源码确实引用时按需安装，
-    # 避免给不需要的算子（如 GPR）引入额外依赖。
-    if grep -RqsE '^[[:space:]]*(import pypto|from pypto)' "$op" --include='*.py'; then
-        "$PYTHON_BIN" - <<'PY'
-import importlib.util, subprocess, sys
-if importlib.util.find_spec("pypto") is None:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pypto"])
-PY
-    fi
-
-    if [ -f "${op}/test_ops.py" ]; then
-        "$PYTHON_BIN" -X faulthandler -m pytest "${op}/test_ops.py" -v --tb=short
-    elif [ -f "${op}/test_gpr.py" ]; then
-        "$PYTHON_BIN" -X faulthandler -m pytest "${op}/test_gpr.py" -v --tb=short
-    elif [ -d "${op}/tests" ]; then
-        ( cd "$op" && "$PYTHON_BIN" -X faulthandler -m pytest tests -v --tb=short )
-    else
-        echo "[WARN] No Python test file found in $op"
-        return 1
-    fi
-    return $?
-}
-
-# 参考测试：遍历 CMake 算子的 tests/ 目录运行 pytest（与构建同 stage 并行，不再前置卡构建）
 run_reference_tests() {
     local filelist="$1"
     local filter_prefix="$2"  # 如 "prediction/ProcessControl/" 只测该前缀下的算子
@@ -493,12 +453,6 @@ if [ "$LIST_ONLY" = true ]; then
         printf '  %s\n' "${SKIP_OPERATORS[@]}"
     fi
     exit 0
-fi
-
-# Python 算子模式
-if [ -n "$PYTHON_OP" ]; then
-    run_python_test "$PYTHON_OP" "$FILELIST"
-    exit $?
 fi
 
 # 参考测试模式
