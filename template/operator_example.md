@@ -1,6 +1,6 @@
 # {算子名称} — 算子示例模板
 
-> 本模板说明如何在仓库中添加一个新的 Ascend C 算子。请参考已有算子（如 Lennard_Jones/、GAFF2/）作为完整实现示例。
+> 本模板说明如何在仓库中添加一个新的 Ascend C 算子。请参考已有算子（如 lennard_jones/、gaff2/）作为完整实现示例。
 
 ---
 
@@ -145,4 +145,4 @@ add_subdirectory(tests)
 add_modules_sources(HOSTNAME ${OPHOST_NAME} MODE PRIVATE DIR ${CMAKE_CURRENT_SOURCE_DIR} OPTYPE {算子名} ACLNNTYPE aclnn_exclude)
 ```
 
-> 更多构建配置请参考已有算子（如 `Lennard_Jones/`、`GAFF2/`）的实际 CMakeLists.txt 文件。
+> 更多构建配置请参考已有算子（如 `lennard_jones/`、`gaff2/`）的实际 CMakeLists.txt 文件。
